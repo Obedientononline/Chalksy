@@ -1,4 +1,4 @@
-# Crew: Autonomous AI Classroom Builder
+# Chalksy: Autonomous AI Classroom Builder
 ### Stop Prompting, Solo Agents Hackathon (Lyzr × Qdrant × Omi)
 
 > **Build Track**: **Collaborative Multi-Agent Workflows** *(also cross-qualifies for Meeting & Lecture Intelligence & Privacy-First Knowledge Systems)*  
@@ -124,37 +124,6 @@ Open **`http://localhost:8000`** in your browser.
 python -m pytest tests/test_pipeline.py -v
 ```
 *(30 tests covering all 7 phases pass with 100% success).*
-
----
-
-## 📽️ Hackathon Demo Script (3 to 5 Minutes)
-
-1. **Step 1: Ambient Ingestion & Real-Time Scrubbing**
-   - Click **"Sample 1: Loops & Sensors"** in the Voice Gateway or speak via Browser Mic.
-   - Click **"PII Scrub Diff"** to prove 0% outbound leakage for names, emails, and phone numbers.
-   - Click **"Ingest Voice"**.
-
-2. **Step 2: Observability & Task DAG**
-   - Observe the live DAG: `Planner Agent` ➔ `Worksheet Agent` ➔ `Critic Guardrail Agent`.
-   - Observe the memory counter increment in the header.
-
-3. **Step 3: Human-in-the-Loop Approval**
-   - Inspect the pending worksheet in the **Teacher Approval Queue**.
-   - Download the generated **PDF** or **DOCX** student handout.
-   - Click **"Approve"**.
-
-4. **Step 4: Autonomous Closed-Loop Grading**
-   - Under the **Grade Submission** tab, submit student answer with a loop flaw.
-   - Observe the detected misconception, rubric breakdown, and direct write-back to Qdrant `student_events`.
-
-5. **Step 5: Multilingual Reports & WhatsApp/TTS Delivery**
-   - Switch to **WhatsApp** tab to view formatted text.
-   - Switch to **Voice TTS** tab to inspect synthesized SSML for Indian languages.
-
-6. **Step 6: "Prepare My Monday" Chained Autonomy & Analytics**
-   - Click **"Prepare My Monday"** to execute the multi-agent chain.
-   - Click **"Analytics"** to view the Concept × Week misconception heatmap.
-   - Click **"Run Evals"** to show Cohen's Kappa, Recall@K, and Zero-PII compliance metrics.
 
 ---
 
