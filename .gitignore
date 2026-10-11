@@ -1,0 +1,61 @@
+# ==============================================================================
+# Chalksy — GitHub .gitignore
+# ==============================================================================
+
+# !! CRITICAL — NEVER COMMIT YOUR PRIVATE KEYS !!
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+.Python
+
+# Tests & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.xml
+
+# Local SQLite databases (runtime data — not source code)
+*.db
+*.sqlite
+*.sqlite3
+data/tasks.db
+data/student_registry.db
+
+# Qdrant local embedded vector storage (large binary data)
+data/qdrant_storage/
+
+# Exported artifacts
+exports/*.pdf
+exports/*.docx
+exports/*.zip
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+desktop.ini
+Thumbs.db
+*.swp
+*.swo
+*.log
+
+# Node (if frontend build added later)
+node_modules/
+.next/
+dist/
+
+# Netlify & CI
+.netlify/

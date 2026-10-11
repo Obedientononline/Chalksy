@@ -1,0 +1,33 @@
+# ==============================================================================
+# Chalksy — Netlify Configuration
+# Note: FastAPI is a Python backend. Netlify hosts the UI/static files.
+# Full backend (voice, agents, memory) should be deployed on Render/Railway.
+# This config proxies /api/* to your backend URL.
+# ==============================================================================
+
+[build]
+  command = "echo 'Static site ready'"
+  publish = "app/templates"
+
+# Proxy all API calls to the live backend (set BACKEND_URL in Netlify env vars)
+[[redirects]]
+  from = "/api/*"
+  to = "https://chalksy.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/omi/*"
+  to = "https://chalksy.onrender.com/omi/:splat"
+  status = 200
+  force = true
+
+# Fallback: serve index for everything else
+[[redirects]]
+  from = "/*"
+  to = "https://chalksy.onrender.com/:splat"
+  status = 200
+  force = true
+
+[build.environment]
+  NODE_VERSION = "18"

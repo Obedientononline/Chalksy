@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chalksy | Autonomous AI Classroom — Omi × Qdrant × Lyzr</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --lavender: #e8e0f5;
+      --lavender-mid: #c4b5e8;
+      --lavender-deep: #7c5cbf;
+      --gold: #fff3c4;
+      --gold-mid: #f6d860;
+      --gold-deep: #b08800;
+      --blue: #d4eaf7;
+      --blue-mid: #7bbfe0;
+      --blue-deep: #1f74a8;
+      --pink: #fce4ec;
+      --pink-mid: #f48fb1;
+      --pink-deep: #b5396b;
+      --green: #dcf5e5;
+      --green-mid: #68c987;
+      --green-deep: #2e7d4f;
+      --paper: #faf8f2;
+      --ink: #2d2b2e;
+      --ink-light: #6b6676;
+      --ruled: #e9e5f2;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #f0ecf8;
+      background-image:
+        repeating-linear-gradient(transparent, transparent 27px, #e2ddf0 28px);
+      background-size: 100% 28px;
+      min-height: 100vh;
+      color: var(--ink);
+    }
+
+    /* Notebook Header */
+    .nb-header {
+      background: linear-gradient(135deg, #7c5cbf 0%, #5b4a9a 60%, #3a2e7a 100%);
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(94,60,180,0.25);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nb-header .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: rgba(255,255,255,0.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; color: #fff; font-family: 'Kalam', cursive;
+      font-weight: 700; border: 2px solid rgba(255,255,255,0.3);
+    }
+    .brand-text h1 {
+      color: #fff; font-size: 24px; font-weight: 900;
+      font-family: 'Kalam', cursive; letter-spacing: 0.5px;
+    }
+    .brand-text p { color: rgba(255,255,255,0.8); font-size: 11px; }
+    .header-badges { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .badge {
+      padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      border: 1.5px solid rgba(255,255,255,0.3); color: #fff;
+      background: rgba(255,255,255,0.12);
+    }
+    .badge.live { background: rgba(104,201,135,0.25); border-color: #68c987; color: #b9f0ce; }
+    #memCounter { font-size: 12px; color: var(--gold-mid); font-weight: 700; }
+
+    /* Main Notebook Layout */
+    .notebook { max-width: 1280px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    /* Section Title — underlined notebook style */
+    .section-label {
+      font-family: 'Kalam', cursive;
+      font-size: 15px; font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* CARD BASE */
+    .card {
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.07);
+      position: relative;
+      overflow: hidden;
+    }
+    /* Color-coded cards */
+    .card-lavender { background: var(--lavender); border: 2px solid var(--lavender-mid); }
+    .card-lavender .section-label { color: var(--lavender-deep); }
+
+    .card-gold { background: var(--gold); border: 2px solid var(--gold-mid); }
+    .card-gold .section-label { color: var(--gold-deep); }
+
+    .card-blue { background: var(--blue); border: 2px solid var(--blue-mid); }
+    .card-blue .section-label { color: var(--blue-deep); }
+
+    .card-pink { background: var(--pink); border: 2px solid var(--pink-mid); }
+    .card-pink .section-label { color: var(--pink-deep); }
+
+    .card-green { background: var(--green); border: 2px solid var(--green-mid); }
+    .card-green .section-label { color: var(--green-deep); }
+
+    .card-white { background: #fff; border: 2px solid #ddd8f0; }
+    .card-white .section-label { color: var(--lavender-deep); }
+
+    /* Grid layouts */
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 18px; }
+    .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+    .mb-18 { margin-bottom: 18px; }
+    .col-span-2 { grid-column: span 2; }
+
+    @media (max-width: 900px) {
+      .grid-3, .grid-2, .grid-1-2, .grid-2-1 { grid-template-columns: 1fr; }
+      .col-span-2 { grid-column: span 1; }
+    }
+
+    /* Form elements */
+    input[type=text], textarea, select {
+      width: 100%; padding: 9px 13px; border-radius: 12px;
+      border: 1.5px solid rgba(0,0,0,0.12);
+      font-family: 'Nunito', sans-serif; font-size: 13px;
+      background: rgba(255,255,255,0.7); color: var(--ink);
+      outline: none; transition: border 0.2s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--lavender-deep); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: 12px; font-size: 13px;
+      font-weight: 700; font-family: 'Nunito', sans-serif;
+      cursor: pointer; border: none; transition: all 0.15s;
+    }
+    .btn-purple { background: var(--lavender-deep); color: #fff; }
+    .btn-purple:hover { background: #6849b0; }
+    .btn-gold { background: var(--gold-deep); color: #fff; }
+    .btn-gold:hover { background: #9a7500; }
+    .btn-blue { background: var(--blue-deep); color: #fff; }
+    .btn-blue:hover { background: #1a5f8e; }
+    .btn-pink { background: var(--pink-deep); color: #fff; }
+    .btn-pink:hover { background: #9a2e5b; }
+    .btn-green { background: var(--green-deep); color: #fff; }
+    .btn-green:hover { background: #236040; }
+    .btn-sm { padding: 6px 13px; font-size: 12px; border-radius: 10px; }
+    .btn-outline {
+      background: rgba(255,255,255,0.6); color: var(--ink);
+      border: 1.5px solid rgba(0,0,0,0.15);
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.95); }
+
+    /* Result boxes */
+    .result-box {
+      background: rgba(255,255,255,0.7); border-radius: 14px;
+      border: 1.5px solid rgba(0,0,0,0.1); padding: 14px;
+      font-size: 13px; max-height: 280px; overflow-y: auto;
+    }
+    .result-box pre { white-space: pre-wrap; font-family: 'Nunito', sans-serif; font-size: 12px; }
+
+    /* Tabs */
+    .tab-bar { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 7px 16px; border-radius: 10px; font-size: 12px; font-weight: 700;
+      cursor: pointer; border: 1.5px solid rgba(0,0,0,0.12);
+      font-family: 'Nunito', sans-serif;
+      background: rgba(255,255,255,0.6); color: var(--ink-light);
+      transition: all 0.15s;
+    }
+    .tab-btn.active { background: var(--lavender-deep); color: #fff; border-color: var(--lavender-deep); }
+
+    /* DAG task node */
+    .dag-node {
+      background: rgba(255,255,255,0.75); border-radius: 14px;
+      border: 2px solid var(--lavender-mid); padding: 12px 14px;
+      min-width: 170px; max-width: 220px; position: relative;
+    }
+    .dag-node.approved { border-color: var(--green-mid); background: rgba(220,245,229,0.7); }
+    .dag-node .node-agent { font-size: 11px; font-weight: 700; color: var(--lavender-deep); margin-bottom: 4px; }
+    .dag-node .node-title { font-size: 12px; color: var(--ink); font-weight: 600; }
+    .dag-node .node-status {
+      position: absolute; top: 8px; right: 10px;
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px;
+    }
+    .status-pending { background: var(--gold); color: var(--gold-deep); }
+    .status-approved { background: var(--green); color: var(--green-deep); }
+
+    /* Approval card */
+    .approval-card {
+      background: rgba(255,255,255,0.7); border-radius: 14px;
+      border: 1.5px dashed var(--gold-mid); padding: 14px; margin-bottom: 10px;
+    }
+    .approval-card .title { font-size: 13px; font-weight: 700; color: var(--gold-deep); }
+    .approval-card .agent { font-size: 11px; color: var(--ink-light); margin-bottom: 6px; }
+
+    /* Memory card */
+    .memory-card {
+      background: rgba(255,255,255,0.65); border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.08); padding: 11px; margin-bottom: 8px;
+    }
+    .memory-meta { font-size: 10px; color: var(--ink-light); display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .memory-text { font-size: 12px; color: var(--ink); }
+
+    /* Heatmap */
+    .heatmap-table { width: 100%; border-collapse: separate; border-spacing: 4px; }
+    .heatmap-table th { font-size: 11px; color: var(--ink-light); text-align: center; font-weight: 700; padding: 4px; }
+    .heatmap-table td { text-align: center; font-size: 11px; font-weight: 700; border-radius: 8px; padding: 8px 4px; }
+
+    /* Heatmap cell colors */
+    .heat-0 { background: #f0f0f0; color: #999; }
+    .heat-1 { background: #fef9e0; color: #8a6d00; }
+    .heat-2 { background: #fde68a; color: #7a5500; }
+    .heat-3 { background: #fbbf24; color: #5a3d00; }
+    .heat-4 { background: #f97316; color: #fff; }
+    .heat-5 { background: #ef4444; color: #fff; }
+
+    /* Progress bar */
+    .progress-bar { height: 10px; border-radius: 6px; background: rgba(0,0,0,0.1); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 6px; transition: width 0.5s; }
+
+    /* Stat pill */
+    .stat-pill {
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(255,255,255,0.6); border-radius: 14px;
+      padding: 12px 16px; border: 1.5px solid rgba(0,0,0,0.1); text-align: center;
+    }
+    .stat-value { font-size: 26px; font-weight: 900; font-family: 'Kalam', cursive; }
+    .stat-label { font-size: 11px; color: var(--ink-light); font-weight: 700; margin-top: 2px; }
+
+    /* Pulse animation */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .pulse { animation: pulse 1.5s infinite; }
+
+    /* Checkbox pill */
+    .topic-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; padding: 3px 10px; border-radius: 10px;
+      margin: 2px 2px; font-weight: 600;
+    }
+    .topic-taught { background: var(--green); color: var(--green-deep); border: 1px solid var(--green-mid); }
+    .topic-pending { background: #f8f8f8; color: #999; border: 1px dashed #ccc; }
+
+    /* Sticky rules-line effect */
+    .ruled-line { height: 1px; background: var(--ruled); margin: 14px 0; }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: var(--lavender-mid); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <!-- Warm Notebook Header -->
+  <header class="nb-header">
+    <div class="brand">
+      <div class="brand-icon">C</div>
+      <div class="brand-text">
+        <h1>Chalksy AI Classroom</h1>
+        <p>Omi Ambient Voice &bull; Qdrant Hybrid Memory &bull; Lyzr Multi-Agent Orchestrator</p>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="badge live"><i class="fa-solid fa-circle pulse"></i> Live</span>
+      <span class="badge" id="memCounter">Memories: 0</span>
+      <button class="btn btn-sm btn-outline" onclick="openKeyModal()" style="font-weight:700;" title="Configure your own private API keys or use default demo mode">
+        <i class="fa-solid fa-key" style="color:var(--gold-deep);"></i> API Keys <span id="keyStatusBadge" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#27ae60;margin-left:4px;"></span>
+      </button>
+      <button class="btn btn-sm btn-outline" onclick="runEvaluations()">
+        <i class="fa-solid fa-chart-bar"></i> Run Evals
+      </button>
+      <button class="btn btn-sm btn-outline" onclick="loadAnalytics()">
+        <i class="fa-solid fa-fire"></i> Analytics
+      </button>
+    </div>
+  </header>
+
+  <main class="notebook">
+
+    <!-- ROW 1: Voice Gateway + DAG -->
+    <div class="grid-1-2 mb-18">
+
+      <!-- Voice Gateway -->
+      <div class="card card-lavender">
+        <div class="section-label"><i class="fa-solid fa-microphone-lines"></i> Voice Gateway (Omi)</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <p style="font-size:12px;color:var(--ink-light);">
+            Real-time Omi wearable ambient input or browser mic.
+          </p>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <label style="font-size:11px;font-weight:700;color:var(--lavender-deep);">Target Class:</label>
+            <select id="voiceClass" onchange="syncClassFilter(this.value)" style="width:auto;padding:4px 8px;font-size:12px;font-weight:700;border-radius:8px;">
+              <option value="5B" selected>5B</option>
+            </select>
+          </div>
+        </div>
+        <textarea id="voiceInput" rows="4" placeholder="e.g. 'Class 5B struggled with while-loop exit conditions in robotics. Plan Friday's sensor lesson and generate tiered practice.'"></textarea>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm btn-outline" onclick="fillPreset(1)">
+            <i class="fa-solid fa-bolt"></i> Loops &amp; Sensors
+          </button>
+          <button class="btn btn-sm btn-outline" onclick="fillPreset(2)">
+            <i class="fa-solid fa-user"></i> Aarav's Gaps
+          </button>
+          <button class="btn btn-sm btn-outline" onclick="clearVoiceInput()">
+            <i class="fa-solid fa-eraser"></i> Clear Text
+          </button>
+        </div>
+        <div class="ruled-line"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button id="micBtn" class="btn btn-sm btn-outline" onclick="toggleMic()">
+            <i class="fa-solid fa-microphone" style="color:#e74c3c"></i> <span id="micLabel">Browser Mic</span>
+          </button>
+          <button class="btn btn-purple" onclick="submitVoice()" style="flex:1;justify-content:center;">
+            <i class="fa-solid fa-robot"></i> Ingest &amp; Trigger Agents
+          </button>
+          <button class="btn btn-blue" onclick="insertNoteDirectly()" title="Store transcript directly into Qdrant teacher_notes memory without running the full DAG">
+            <i class="fa-solid fa-floppy-disk"></i> Save as Memory Note
+          </button>
+        </div>
+        <div id="voiceFeedback" style="display:none;margin-top:8px;font-size:11px;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.7);color:var(--green-deep);font-weight:700;"></div>
+      </div>
+
+      <!-- DAG Visualizer -->
+      <div class="card card-blue">
+        <div class="section-label"><i class="fa-solid fa-diagram-project"></i> Lyzr Orchestrator — Task DAG</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <p style="font-size:12px;color:var(--ink-light);">Typed JSON agent execution graph — Planner → Worksheet → Critic.</p>
+          <span id="dagStatus" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;background:var(--blue);color:var(--blue-deep);">Idle</span>
+        </div>
+        <div id="dagContainer" style="background:rgba(255,255,255,0.5);border-radius:14px;min-height:150px;padding:16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;border:1.5px solid rgba(0,0,0,0.08);">
+          <div style="width:100%;text-align:center;color:var(--ink-light);font-size:12px;">
+            <i class="fa-solid fa-network-wired" style="font-size:24px;display:block;margin-bottom:6px;opacity:0.4;"></i>
+            No active DAG. Ingest a voice snippet to view live delegation.
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:var(--blue-deep);font-weight:700;"><i class="fa-solid fa-shield-halved"></i> PII Scrub: Active</span>
+          <span style="font-size:11px;color:var(--green-deep);font-weight:700;"><i class="fa-solid fa-rotate"></i> Auto Write-Back: ON</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 2: Approval Queue + Qdrant Memory -->
+    <div class="grid-2 mb-18">
+
+      <!-- Teacher Approval Queue -->
+      <div class="card card-gold">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="section-label" style="margin-bottom:0;"><i class="fa-solid fa-clipboard-check"></i> Teacher Approval Queue</div>
+            <span id="queueCount" style="font-size:11px;font-weight:700;padding:2px 8px;background:var(--gold-mid);color:var(--gold-deep);border-radius:10px;">0 Pending</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-outline" onclick="seedSampleTasks()" title="Generate 2 demo tasks to test approval flow">
+              <i class="fa-solid fa-plus"></i> + Sample Tasks
+            </button>
+            <button class="btn btn-sm btn-outline" onclick="approveSelectedTasks()" title="Approve checked tasks">
+              <i class="fa-solid fa-list-check"></i> Approve Selected
+            </button>
+            <button class="btn btn-sm btn-green" onclick="approveAllTasks()" title="Approve all tasks currently in queue">
+              <i class="fa-solid fa-check-double"></i> Approve All
+            </button>
+          </div>
+        </div>
+        
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;border-bottom:1px solid rgba(0,0,0,0.06);padding-bottom:6px;">
+          <div style="display:flex;gap:4px;">
+            <button id="tabPending" class="btn btn-sm btn-gold" onclick="switchQueueTab('pending')" style="font-size:11px;padding:3px 10px;">
+              ⏳ Pending Review
+            </button>
+            <button id="tabApproved" class="btn btn-sm btn-outline" onclick="switchQueueTab('approved')" style="font-size:11px;padding:3px 10px;">
+              ✓ Approved History
+            </button>
+            <button id="tabRejected" class="btn btn-sm btn-outline" onclick="switchQueueTab('rejected')" style="font-size:11px;padding:3px 10px;">
+              ✕ Rejected
+            </button>
+          </div>
+        </div>
+
+        <div id="approvalList" style="max-height:360px;overflow-y:auto;">
+          <div style="text-align:center;padding:30px 0;color:var(--ink-light);font-size:12px;font-family:'Kalam',cursive;">
+            Loading queue...
+          </div>
+        </div>
+      </div>
+
+      <!-- Qdrant Memory Inspector -->
+      <div class="card card-white">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div class="section-label" style="margin-bottom:0;"><i class="fa-solid fa-database" style="color:var(--blue-deep)"></i> Qdrant Vector Blackboard</div>
+          <select id="memCollection" onchange="searchMemories()" style="width:auto;font-size:12px;">
+            <option value="teacher_notes">teacher_notes</option>
+            <option value="curriculum">curriculum</option>
+            <option value="student_events">student_events</option>
+            <option value="artifacts">artifacts</option>
+            <option value="insights">insights</option>
+            <option value="corrections">corrections</option>
+          </select>
+        </div>
+        <p style="font-size:12px;color:var(--ink-light);margin-bottom:8px;">Dense + sparse hybrid vector store with role visibility tiers.</p>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input id="memQueryInput" type="text" placeholder="Filter or search query (e.g. while loops, lesson, student)..." style="font-size:12px;padding:6px 10px;" onkeyup="if(event.key==='Enter')searchMemories()">
+          <button class="btn btn-sm btn-blue" onclick="searchMemories()"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+        </div>
+        <div id="memResults" style="max-height:240px;overflow-y:auto;">
+          <div style="text-align:center;padding:20px;color:var(--ink-light);font-size:12px;">Loading memories...</div>
+        </div>
+        <div class="ruled-line"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm btn-outline" onclick="searchMemories()">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh View
+            </button>
+            <button class="btn btn-sm btn-outline" onclick="runConsolidate()" title="Cluster raw notes & student events into insights">
+              <i class="fa-solid fa-layer-group"></i> Consolidate Memory
+            </button>
+          </div>
+          <button class="btn btn-sm" style="background:var(--pink);color:var(--pink-deep);border:1.5px solid var(--pink-mid);" onclick="purgeStudent()">
+            <i class="fa-solid fa-user-slash"></i> RTBF Purge
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 3: Grader + Parent Report Tabs -->
+    <div class="card card-pink mb-18">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div class="tab-bar" style="margin-bottom:0;">
+          <button class="tab-btn active" onclick="showTab('gradeTab', this)">
+            <i class="fa-solid fa-spell-check"></i> Grade Submission
+          </button>
+          <button class="tab-btn" onclick="showTab('photoTab', this)">
+            <i class="fa-solid fa-camera"></i> Photo OCR Grade
+          </button>
+          <button class="tab-btn" onclick="showTab('parentTab', this)">
+            <i class="fa-solid fa-comments"></i> Parent Report
+          </button>
+          <button class="tab-btn" onclick="showTab('waTab', this)">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+          </button>
+          <button class="tab-btn" onclick="showTab('ttsTab', this)">
+            <i class="fa-solid fa-volume-high"></i> Voice TTS
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.7);padding:4px 10px;border-radius:12px;border:1.5px solid var(--pink-mid);">
+          <label style="font-size:11px;font-weight:800;color:var(--pink-deep);"><i class="fa-solid fa-filter"></i> Filter Class:</label>
+          <select id="globalClassFilter" onchange="onClassFilterChange(this.value)" style="width:auto;padding:3px 8px;font-size:12px;font-weight:700;border-radius:8px;">
+            <option value="5B" selected>5B (Default)</option>
+          </select>
+          <span id="studentCountBadge" style="font-size:10px;font-weight:700;background:var(--pink);color:var(--pink-deep);padding:2px 6px;border-radius:8px;">5 students</span>
+        </div>
+      </div>
+
+      <!-- Text Grade Tab -->
+      <div id="gradeTab" class="tab-content">
+        <div class="section-label"><i class="fa-solid fa-spell-check"></i> Grader Agent — Memory Write-Back Loop</div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:8px;margin-bottom:8px;">
+          <select id="gradeName" class="student-select" style="font-size:13px;font-weight:600;">
+            <option value="Aarav Sharma">Aarav Sharma (5B)</option>
+          </select>
+          <input id="gradeClass" type="text" value="5B" placeholder="Class">
+          <button class="btn btn-pink" onclick="submitGrade()">Grade &amp; Store</button>
+        </div>
+        <textarea id="gradeAnswer" rows="3" placeholder="Student answer... e.g. 'while distance > 10: robot.move_forward() # missing sensor update'"></textarea>
+        <div id="gradeResult" class="result-box" style="margin-top:10px;display:none;"></div>
+      </div>
+
+      <!-- Photo OCR Tab -->
+      <div id="photoTab" class="tab-content" style="display:none;">
+        <div class="section-label"><i class="fa-solid fa-camera"></i> Photo OCR — Handwritten Submission Grader</div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:8px;margin-bottom:10px;">
+          <select id="photoName" class="student-select" style="font-size:13px;font-weight:600;">
+            <option value="Priya Patel">Priya Patel (5B)</option>
+          </select>
+          <input id="photoClass" type="text" value="5B" placeholder="Class">
+        </div>
+        <div id="photoDropZone" style="border:2px dashed var(--pink-mid);border-radius:14px;padding:30px;text-align:center;cursor:pointer;background:rgba(255,255,255,0.5);"
+             onclick="document.getElementById('photoFile').click()">
+          <i class="fa-solid fa-image" style="font-size:28px;color:var(--pink-mid);display:block;margin-bottom:8px;"></i>
+          <p style="font-size:13px;color:var(--ink-light);font-weight:700;">Click to upload handwritten photo</p>
+          <p style="font-size:11px;color:#bbb;">JPG, PNG, WEBP supported</p>
+          <input type="file" id="photoFile" accept="image/*" style="display:none;" onchange="previewPhoto(event)">
+        </div>
+        <img id="photoPreview" style="display:none;max-height:100px;border-radius:10px;margin-top:8px;">
+        <button class="btn btn-pink" style="margin-top:10px;width:100%;justify-content:center;" onclick="submitPhotoGrade()">
+          <i class="fa-solid fa-graduation-cap"></i> Grade Photo
+        </button>
+        <div id="photoResult" class="result-box" style="margin-top:10px;display:none;"></div>
+      </div>
+
+      <!-- Parent Report Tab -->
+      <div id="parentTab" class="tab-content" style="display:none;">
+        <div class="section-label"><i class="fa-solid fa-comments"></i> Parent-Report Agent (Multilingual)</div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:8px;margin-bottom:10px;">
+          <select id="parentName" class="student-select" style="font-size:13px;font-weight:600;">
+            <option value="Aarav Sharma">Aarav Sharma (5B)</option>
+          </select>
+          <select id="parentLang">
+            <option value="English">English</option>
+            <option value="Hindi">Hindi</option>
+            <option value="Kannada">Kannada</option>
+          </select>
+          <button class="btn btn-pink" onclick="submitParent()">Draft Report</button>
+        </div>
+        <div id="parentResult" class="result-box" style="display:none;"></div>
+      </div>
+
+      <!-- WhatsApp Tab -->
+      <div id="waTab" class="tab-content" style="display:none;">
+        <div class="section-label"><i class="fa-brands fa-whatsapp"></i> WhatsApp Business API Parent Message</div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:8px;margin-bottom:10px;">
+          <select id="waName" class="student-select" style="font-size:13px;font-weight:600;">
+            <option value="Aarav Sharma">Aarav Sharma (5B)</option>
+          </select>
+          <select id="waLang">
+            <option value="English">English</option>
+            <option value="Hindi">Hindi</option>
+            <option value="Kannada">Kannada</option>
+          </select>
+          <button class="btn btn-green" onclick="submitWhatsApp()">
+            <i class="fa-brands fa-whatsapp"></i> Generate
+          </button>
+        </div>
+        <div id="waResult" class="result-box" style="display:none;"></div>
+      </div>
+
+      <!-- TTS Tab -->
+      <div id="ttsTab" class="tab-content" style="display:none;">
+        <div class="section-label"><i class="fa-solid fa-volume-high"></i> Voice TTS Report — SSML for Google/Polly/Azure</div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:8px;margin-bottom:10px;">
+          <select id="ttsName" class="student-select" style="font-size:13px;font-weight:600;">
+            <option value="Ananya Sen">Ananya Sen (5B)</option>
+          </select>
+          <select id="ttsLang">
+            <option value="English">English</option>
+            <option value="Hindi">Hindi</option>
+            <option value="Kannada">Kannada</option>
+          </select>
+          <button class="btn btn-blue" onclick="submitTTS()">
+            <i class="fa-solid fa-waveform-lines"></i> Generate SSML
+          </button>
+        </div>
+        <div id="ttsResult" class="result-box" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ROW 4: Analytics Heatmap + Curriculum -->
+    <div class="grid-2 mb-18">
+
+      <!-- Misconception Heatmap -->
+      <div class="card card-lavender">
+        <div class="section-label"><i class="fa-solid fa-fire"></i> Misconception Heatmap (Class 5B)</div>
+        <p style="font-size:12px;color:var(--ink-light);margin-bottom:12px;">
+          Concept × Week frequency of errors. Red = high, green = improving.
+        </p>
+        <div id="heatmapContainer">
+          <div style="text-align:center;padding:20px;color:var(--ink-light);font-size:12px;font-family:'Kalam';">
+            Click "Analytics" in the header to load heatmap.
+          </div>
+        </div>
+        <div class="ruled-line"></div>
+        <div id="classHealth" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- Curriculum Coverage -->
+      <div class="card card-green">
+        <div class="section-label"><i class="fa-solid fa-book-open"></i> Curriculum Coverage Tracker</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+          <select id="boardSelect" style="width:auto;font-size:12px;">
+            <option value="CBSE">CBSE</option>
+            <option value="ICSE">ICSE</option>
+            <option value="Karnataka">Karnataka State</option>
+          </select>
+          <button class="btn btn-sm btn-green" onclick="loadCurriculum()">
+            <i class="fa-solid fa-arrow-rotate-right"></i> Refresh
+          </button>
+        </div>
+        <div id="curriculumContainer">
+          <div style="text-align:center;padding:20px;color:var(--ink-light);font-size:12px;font-family:'Kalam';">
+            Select board and click Refresh.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 5: EOD Reflection + PTM + Phase 4 Agents -->
+    <div class="card card-blue mb-18">
+      <div class="section-label"><i class="fa-solid fa-brain"></i> Autonomous Agents — Quick Actions</div>
+      <div id="agentsBtnRow" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="btn btn-sm btn-gold" onclick="runPrepareMonday()">
+          <i class="fa-solid fa-calendar-star"></i> Prepare My Monday
+        </button>
+        <button class="btn btn-sm btn-purple" onclick="runMemoryTimeline()">
+          <i class="fa-solid fa-timeline"></i> Memory Timeline
+        </button>
+        <button class="btn btn-sm btn-pink" onclick="runPIIDiff()">
+          <i class="fa-solid fa-code-compare"></i> PII Scrub Diff
+        </button>
+        <button id="toggleMemBtn" class="btn btn-sm btn-outline" onclick="toggleMemoryMode()">
+          <i class="fa-solid fa-toggle-on text-emerald-500"></i> Memory: ON
+        </button>
+        <button class="btn btn-sm btn-blue" onclick="runEOD()">
+          <i class="fa-solid fa-moon"></i> EOD Reflection
+        </button>
+        <button class="btn btn-sm btn-blue" onclick="runSpacedRep()">
+          <i class="fa-solid fa-calendar-check"></i> Spaced Rep
+        </button>
+        <button class="btn btn-sm btn-blue" onclick="runConsolidate()">
+          <i class="fa-solid fa-layer-group"></i> Consolidate Memory
+        </button>
+        <button class="btn btn-sm btn-blue" onclick="runHybridBench()">
+          <i class="fa-solid fa-chart-bar"></i> Retrieval Benchmark
+        </button>
+        <button class="btn btn-sm btn-blue" onclick="runIntervention()">
+          <i class="fa-solid fa-user-group"></i> Intervention Plan
+        </button>
+        <button class="btn btn-sm btn-blue" onclick="runSubstitute()">
+          <i class="fa-solid fa-suitcase"></i> Substitute Pack
+        </button>
+        <button class="btn btn-sm btn-blue" onclick="runQuizGame()">
+          <i class="fa-solid fa-gamepad"></i> Quiz Game
+        </button>
+        <button class="btn btn-sm btn-blue" onclick="runDifferentiate()">
+          <i class="fa-solid fa-sliders"></i> Differentiate
+        </button>
+        <button class="btn btn-sm btn-blue" onclick="runAssessment()">
+          <i class="fa-solid fa-pencil-ruler"></i> Assessment Design
+        </button>
+      </div>
+      <div id="agentOutputBox" class="result-box" style="min-height:60px;background:rgba(255,255,255,0.6);">
+        <span style="color:var(--ink-light);font-size:12px;font-family:'Kalam';">Agent output will appear here.</span>
+      </div>
+    </div>
+
+    <!-- ROW 6: Statistical Evals Panel -->
+    <div id="evalsPanel" class="card card-white mb-18" style="display:none;border-color:var(--lavender-mid);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="section-label" style="margin-bottom:0;"><i class="fa-solid fa-square-poll-vertical"></i> Statistical Evaluation Benchmark</div>
+        <button class="btn btn-sm btn-outline" onclick="document.getElementById('evalsPanel').style.display='none'">
+          Close
+        </button>
+      </div>
+      <div id="evalCards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;"></div>
+    </div>
+
+  </main>
+
+  <script>
+    const presets = {
+      1: "Class 5B struggled with while-loop exit conditions in robotics. Plan Friday's sensor lesson and generate tiered practice with an ultrasonic sensor.",
+      2: "Aarav Sharma understood the basic setup but forgot to update the loop variable. Make sure to remediate this misconception for class 5B.",
+      3: "Class 3A completed the fraction addition activity today. Most students did well, but two students need extra support with unlike denominators. Plan a follow-up worksheet for next week."
+    };
+
+    function fillPreset(id) {
+      document.getElementById('voiceInput').value = presets[id];
+    }
+
+    function showTab(id, btn) {
+      document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).style.display = 'block';
+      btn.classList.add('active');
+    }
+
+    function clearVoiceInput() {
+      document.getElementById('voiceInput').value = '';
+    }
+
+    async function insertNoteDirectly() {
+      const text = document.getElementById('voiceInput').value.trim();
+      if (!text) return alert("Please enter or record a voice note first.");
+      const cls = document.getElementById('voiceClass')?.value || "5B";
+      
+      const fb = document.getElementById('voiceFeedback');
+      fb.style.display = 'block';
+      fb.innerText = "Saving directly to Qdrant teacher_notes memory...";
+      fb.style.color = "var(--blue-deep)";
+
+      try {
+        const res = await fetch('/api/memory/note', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            text: text,
+            class_id: cls,
+            teacher_id: "TCHR_101"
+          })
+        });
+        const data = await res.json();
+        fb.innerText = `Saved successfully to memory! Stored in teacher_notes for Class ${cls}.`;
+        fb.style.color = "var(--green-deep)";
+        loadMemoryStats();
+        // Set search collection to teacher_notes and refresh blackboard
+        const memCol = document.getElementById('memCollection');
+        if (memCol) memCol.value = 'teacher_notes';
+        searchMemories();
+      } catch (err) {
+        fb.innerText = "Error saving memory: " + err;
+        fb.style.color = "#b91c1c";
+      }
+    }
+
+    async function submitVoice() {
+      const text = document.getElementById('voiceInput').value.trim();
+      if (!text) return alert("Please enter a voice transcript.");
+      const cls = document.getElementById('voiceClass')?.value || "5B";
+
+      setDAGStatus("Processing DAG...", "pending");
+      const fb = document.getElementById('voiceFeedback');
+      fb.style.display = 'block';
+      fb.innerText = `Transmitting to Multi-Agent Crew for Class ${cls}...`;
+      fb.style.color = "var(--lavender-deep)";
+
+      try {
+        const res = await fetch('/api/omi/webhook', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({transcript: text, class_id: cls})
+        });
+        const data = await res.json();
+        renderDAG(data.data?.tasks || []);
+        loadApprovals();
+        loadMemoryStats();
+        searchMemories();
+        setDAGStatus("Tasks Scheduled", "active");
+        fb.innerText = `DAG built successfully! ${data.data?.tasks?.length || 0} agent tasks created. Check approval queue below.`;
+        fb.style.color = "var(--green-deep)";
+      } catch(e) { 
+        fb.innerText = "Error: " + e;
+        fb.style.color = "#b91c1c";
+      }
+    }
+
+    function setDAGStatus(text, type) {
+      const el = document.getElementById('dagStatus');
+      el.innerText = text;
+      el.style.background = type === 'active' ? 'var(--green)' : type === 'pending' ? 'var(--gold)' : 'var(--blue)';
+      el.style.color = type === 'active' ? 'var(--green-deep)' : type === 'pending' ? 'var(--gold-deep)' : 'var(--blue-deep)';
+    }
+
+    function renderDAG(tasks) {
+      const c = document.getElementById('dagContainer');
+      if (!tasks.length) return;
+      c.innerHTML = tasks.map((t, i) => `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="dag-node ${t.status === 'APPROVED' ? 'approved' : ''}">
+            <div class="node-agent"><i class="fa-solid fa-robot"></i> ${t.agent_name}</div>
+            <div class="node-title">${t.title}</div>
+            <span class="node-status ${t.status === 'APPROVED' ? 'status-approved' : 'status-pending'}">
+              ${t.status === 'APPROVED' ? 'Approved' : 'Pending'}
+            </span>
+          </div>
+          ${i < tasks.length - 1 ? '<i class="fa-solid fa-arrow-right" style="color:var(--blue-mid);"></i>' : ''}
+        </div>
+      `).join('');
+    }
+
+    let currentQueueTab = 'pending';
+
+    function switchQueueTab(tab) {
+      currentQueueTab = tab;
+      const tabs = ['pending', 'approved', 'rejected'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (btn) {
+          if (t === tab) {
+            btn.className = 'btn btn-sm btn-gold';
+          } else {
+            btn.className = 'btn btn-sm btn-outline';
+          }
+        }
+      });
+
+      if (tab === 'pending') loadApprovals();
+      else if (tab === 'approved') loadApprovedHistory();
+      else if (tab === 'rejected') loadRejectedHistory();
+    }
+
+    async function loadApprovals() {
+      currentQueueTab = 'pending';
+      const res = await fetch('/api/dag/approvals');
+      const data = await res.json();
+      const list = document.getElementById('approvalList');
+      const pending = data.pending_approvals || [];
+      document.getElementById('queueCount').innerText = `${pending.length} Pending`;
+
+      if (!pending.length) {
+        list.innerHTML = `
+          <div style="text-align:center;padding:30px;color:var(--ink-light);font-size:13px;font-family:'Kalam',cursive;">
+            <i class="fa-solid fa-circle-check" style="font-size:28px;color:var(--green-deep);display:block;margin-bottom:8px;opacity:0.7;"></i>
+            Queue is clear — no tasks awaiting review right now.
+            <div style="margin-top:10px;">
+              <button class="btn btn-sm btn-outline" onclick="seedSampleTasks()">
+                <i class="fa-solid fa-plus"></i> Generate Sample Tasks for Review
+              </button>
+            </div>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = pending.map(a => {
+        const outputText = JSON.stringify(a.output, null, 2);
+        const previewText = outputText.substring(0, 300) + (outputText.length > 300 ? '...' : '');
+        const safeId = a.task_id.replace(/[^a-zA-Z0-9_]/g, '_');
+        return `
+          <div class="approval-card" id="card-${safeId}" style="margin-bottom:12px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;flex:1;">
+                <input type="checkbox" class="task-checkbox" value="${a.task_id}"
+                  style="width:18px;height:18px;cursor:pointer;flex-shrink:0;margin-top:2px;"
+                  title="Check to include in Approve Selected">
+                <div style="flex:1;">
+                  <div class="agent" style="font-size:11px;color:var(--ink-light);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">
+                    <i class="fa-solid fa-robot"></i> ${escapeHtml(a.agent_name)}
+                  </div>
+                  <div class="title" style="font-size:13px;font-weight:800;color:var(--ink);">${escapeHtml(a.title)}</div>
+                  ${a.critic_feedback ? `<div style="font-size:11px;color:var(--green-deep);margin-top:2px;"><i class="fa-solid fa-shield-check"></i> ${escapeHtml(a.critic_feedback)}</div>` : ''}
+                </div>
+              </div>
+              <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:8px;background:var(--gold);color:var(--gold-deep);white-space:nowrap;flex-shrink:0;">
+                ⏳ Awaiting Review
+              </span>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.55);border-radius:10px;padding:10px 12px;margin:6px 0;border:1.5px solid rgba(0,0,0,0.07);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:11px;font-weight:700;color:var(--ink-light);">Agent Output Preview</span>
+                <button class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 8px;"
+                  onclick="togglePreview('preview-${safeId}')">
+                  <i class="fa-solid fa-eye"></i> Show / Hide
+                </button>
+              </div>
+              <pre id="preview-${safeId}" style="font-size:11px;color:var(--ink);max-height:160px;overflow-y:auto;white-space:pre-wrap;display:none;">${escapeHtml(outputText)}</pre>
+              <div style="font-size:11px;color:var(--ink-light);font-family:'Kalam',cursive;">${escapeHtml(previewText)}</div>
+            </div>
+
+            <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+              <button class="btn btn-sm btn-outline" onclick="exportArtifact('${a.task_id}','pdf')" title="Export as PDF">
+                <i class="fa-solid fa-file-pdf" style="color:#e74c3c;"></i> PDF
+              </button>
+              <button class="btn btn-sm btn-outline" onclick="exportArtifact('${a.task_id}','docx')" title="Export as DOCX">
+                <i class="fa-solid fa-file-word" style="color:#2980b9;"></i> DOCX
+              </button>
+              <button class="btn btn-sm" style="background:var(--pink);color:var(--pink-deep);border:1.5px solid var(--pink-mid);"
+                onclick="rejectTask('${a.task_id}', '${safeId}')" title="Dismiss this task without approving">
+                <i class="fa-solid fa-xmark"></i> Reject
+              </button>
+              <button class="btn btn-sm btn-green"
+                onclick="approveTask('${a.task_id}', '${safeId}')" title="Approve this task">
+                <i class="fa-solid fa-check"></i> Approve
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadApprovedHistory() {
+      const res = await fetch('/api/dag/approved');
+      const data = await res.json();
+      const list = document.getElementById('approvalList');
+      const approved = data.approved_tasks || [];
+
+      if (!approved.length) {
+        list.innerHTML = `
+          <div style="text-align:center;padding:30px;color:var(--ink-light);font-size:13px;font-family:'Kalam',cursive;">
+            No approved tasks in history yet.
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = approved.map(a => {
+        const safeId = a.task_id.replace(/[^a-zA-Z0-9_]/g, '_');
+        return `
+          <div class="approval-card" id="card-${safeId}" style="margin-bottom:12px;border-left:4px solid var(--green-deep);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:8px;">
+              <div>
+                <div class="agent" style="font-size:11px;color:var(--green-deep);font-weight:700;text-transform:uppercase;">
+                  <i class="fa-solid fa-check-circle"></i> ${escapeHtml(a.agent_name)}
+                </div>
+                <div class="title" style="font-size:13px;font-weight:800;color:var(--ink);">${escapeHtml(a.title)}</div>
+              </div>
+              <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:8px;background:var(--green);color:var(--green-deep);">
+                ✓ Approved
+              </span>
+            </div>
+            <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px;">
+              <button class="btn btn-sm btn-outline" onclick="exportArtifact('${a.task_id}','pdf')">
+                <i class="fa-solid fa-file-pdf" style="color:#e74c3c;"></i> PDF
+              </button>
+              <button class="btn btn-sm btn-outline" onclick="restoreTask('${a.task_id}')" title="Send back to Pending Review">
+                <i class="fa-solid fa-arrow-rotate-left"></i> Send to Review
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadRejectedHistory() {
+      const res = await fetch('/api/dag/rejected');
+      const data = await res.json();
+      const list = document.getElementById('approvalList');
+      const rejected = data.rejected_tasks || [];
+
+      if (!rejected.length) {
+        list.innerHTML = `
+          <div style="text-align:center;padding:30px;color:var(--ink-light);font-size:13px;font-family:'Kalam',cursive;">
+            No rejected tasks in history.
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = rejected.map(a => {
+        const safeId = a.task_id.replace(/[^a-zA-Z0-9_]/g, '_');
+        return `
+          <div class="approval-card" id="card-${safeId}" style="margin-bottom:12px;border-left:4px solid #b91c1c;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:8px;">
+              <div>
+                <div class="agent" style="font-size:11px;color:#b91c1c;font-weight:700;text-transform:uppercase;">
+                  <i class="fa-solid fa-ban"></i> ${escapeHtml(a.agent_name)}
+                </div>
+                <div class="title" style="font-size:13px;font-weight:800;color:var(--ink);">${escapeHtml(a.title)}</div>
+              </div>
+              <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:8px;background:#fee2e2;color:#b91c1c;">
+                ✕ Rejected
+              </span>
+            </div>
+            <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px;">
+              <button class="btn btn-sm btn-outline" onclick="restoreTask('${a.task_id}')" title="Restore to Pending Review">
+                <i class="fa-solid fa-arrow-rotate-left"></i> Restore to Review
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function restoreTask(id) {
+      await fetch(`/api/dag/restore/${id}`, { method: 'POST' });
+      switchQueueTab('pending');
+    }
+
+    async function seedSampleTasks() {
+      const cls = getActiveTargetClass();
+      await fetch(`/api/dag/seed-sample?class_id=${cls}`, { method: 'POST' });
+      switchQueueTab('pending');
+    }
+
+    function togglePreview(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = (el.style.display === 'none' ? 'block' : 'none');
+    }
+
+    async function approveTask(id, safeId) {
+      const card = document.getElementById('card-' + safeId);
+      if (card) {
+        card.style.opacity = '0.5';
+        card.style.pointerEvents = 'none';
+      }
+      await fetch(`/api/dag/approve/${id}`, {method:'POST'});
+      loadApprovals();
+    }
+
+    async function rejectTask(id, safeId) {
+      const card = document.getElementById('card-' + safeId);
+      if (card) {
+        card.style.opacity = '0.4';
+        card.style.pointerEvents = 'none';
+      }
+      await fetch(`/api/dag/reject/${id}`, {method:'POST'}).catch(() => {});
+      loadApprovals();
+    }
+
+    async function approveAllTasks() {
+      const pending = document.querySelectorAll('.task-checkbox');
+      if (!pending.length) return alert("No tasks in queue to approve.");
+      const res = await fetch('/api/dag/approve-all', { method: 'POST' });
+      const data = await res.json();
+      const list = document.getElementById('approvalList');
+      list.insertAdjacentHTML('afterbegin', `
+        <div style="background:var(--green);color:var(--green-deep);padding:8px 12px;border-radius:10px;font-size:12px;font-weight:700;margin-bottom:10px;">
+          <i class="fa-solid fa-check-double"></i> Approved all ${data.approved_count} tasks!
+        </div>`);
+      setTimeout(loadApprovals, 1500);
+    }
+
+    async function approveSelectedTasks() {
+      const checked = Array.from(document.querySelectorAll('.task-checkbox:checked')).map(cb => cb.value);
+      if (!checked.length) {
+        return alert("Tick the checkbox(es) next to the tasks you want to approve, then click Approve Selected.");
+      }
+      const res = await fetch('/api/dag/approve-selected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_ids: checked })
+      });
+      const data = await res.json();
+      const list = document.getElementById('approvalList');
+      list.insertAdjacentHTML('afterbegin', `
+        <div style="background:var(--green);color:var(--green-deep);padding:8px 12px;border-radius:10px;font-size:12px;font-weight:700;margin-bottom:10px;">
+          <i class="fa-solid fa-list-check"></i> Approved ${data.approved_count} selected task(s).
+        </div>`);
+      setTimeout(loadApprovals, 1500);
+    }
+
+    function exportArtifact(id, fmt) {
+      window.open(`/api/export?task_id=${id}&format=${fmt}`, '_blank');
+    }
+
+
+    async function searchMemories() {
+      const col = document.getElementById('memCollection').value;
+      const queryVal = document.getElementById('memQueryInput')?.value.trim() || "";
+      const gcf = document.getElementById('globalClassFilter')?.value;
+      const clsParam = (gcf && gcf !== 'all') ? `&class_id=${gcf}` : '';
+      
+      const box = document.getElementById('memResults');
+      box.innerHTML = `<div style="text-align:center;padding:16px;color:var(--ink-light);font-size:12px;"><i class="fa-solid fa-spinner fa-spin"></i> Fetching from ${col}...</div>`;
+
+      try {
+        const res = await fetch(`/api/memory/search?collection=${col}&query=${encodeURIComponent(queryVal)}${clsParam}`);
+        const data = await res.json();
+        const results = data.results || [];
+        if (!results.length) {
+          box.innerHTML = `<div style="text-align:center;padding:20px;color:var(--ink-light);font-size:12px;font-family:'Kalam';">No matching memories in collection '<b>${col}</b>'. Try typing a different search query or select another collection.</div>`;
+          return;
+        }
+        box.innerHTML = results.map(r => `
+          <div class="memory-card">
+            <div class="memory-meta">
+              <span style="color:var(--blue-deep);font-weight:700;"><i class="fa-solid fa-brain"></i> Score: ${r.score}</span>
+              <span style="background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:6px;font-size:10px;">
+                ${r.payload?.class_id ? 'Class ' + r.payload.class_id : 'General'} &bull; ${r.payload?.provenance || 'ambient'}
+              </span>
+            </div>
+            <div class="memory-text">${escapeHtml(r.text || '')}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        box.innerHTML = `<div style="text-align:center;padding:16px;color:#b91c1c;font-size:12px;">Error loading memories: ${err}</div>`;
+      }
+    }
+
+
+    async function loadMemoryStats() {
+      const res = await fetch('/api/memory/stats');
+      const data = await res.json();
+      const total = Object.values(data.collections).reduce((a, b) => a + b, 0);
+      document.getElementById('memCounter').innerText = `Memories: ${total}`;
+    }
+
+    async function submitGrade() {
+      const name = document.getElementById('gradeName').value;
+      const ans = document.getElementById('gradeAnswer').value;
+      const cls = document.getElementById('gradeClass').value;
+      if (!ans) return alert("Please enter student answer.");
+      const res = await fetch('/api/agents/grade', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({student_name: name, submission_text: ans, class_id: cls})
+      });
+      const data = await res.json();
+      const r = data.grade_report;
+      const box = document.getElementById('gradeResult');
+      box.style.display = 'block';
+      box.innerHTML = `
+        <div style="font-weight:800;font-size:15px;color:var(--green-deep);">${r.overall_score_pct}% — ${r.mastery_level}</div>
+        <div style="margin:4px 0;font-size:12px;"><b>PID:</b> <span style="color:var(--blue-deep);font-family:monospace;">${r.student_pid}</span>
+        ${r.routed_to_approval_queue ? ' &nbsp;<span style="background:var(--gold);color:var(--gold-deep);padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">Sent to Review</span>' : ''}</div>
+        <div style="font-size:12px;color:var(--ink-light);">${r.feedback_for_student || r.feedback || ''}</div>
+        ${r.detected_misconceptions?.length ? `<div style="font-size:11px;color:#e74c3c;margin-top:4px;"><b>Misconceptions:</b> ${r.detected_misconceptions.join('; ')}</div>` : ''}
+      `;
+      loadMemoryStats();
+    }
+
+    function previewPhoto(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const preview = document.getElementById('photoPreview');
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function submitPhotoGrade() {
+      const fileInput = document.getElementById('photoFile');
+      if (!fileInput.files.length) return alert("Please select a photo first.");
+      const name = document.getElementById('photoName').value;
+      const cls = document.getElementById('photoClass').value;
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const b64 = e.target.result.split(',')[1];
+        const res = await fetch('/api/agents/grade/photo', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({image_base64: b64, student_name: name, class_id: cls})
+        });
+        const data = await res.json();
+        const r = data.grade_report;
+        const box = document.getElementById('photoResult');
+        box.style.display = 'block';
+        box.innerHTML = `
+          <div style="font-weight:800;color:var(--green-deep);">${r.overall_score_pct}% — ${r.mastery_level}</div>
+          <div style="font-size:11px;color:var(--ink-light);">Type: ${r.submission_type} | ${r.image_metadata}</div>
+          <div style="font-size:12px;color:var(--ink);">${r.feedback_for_student || ''}</div>
+        `;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function submitParent() {
+      const name = document.getElementById('parentName').value;
+      const lang = document.getElementById('parentLang').value;
+      const res = await fetch('/api/agents/parent-report', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({student_name: name, language: lang})
+      });
+      const data = await res.json();
+      const r = data.report;
+      const box = document.getElementById('parentResult');
+      box.style.display = 'block';
+      box.innerHTML = `
+        <div style="font-weight:700;color:var(--pink-deep);">${r.real_name} (${r.language})</div>
+        <div style="font-size:12px;"><b>Strengths:</b> ${r.strengths || r.content || ''}</div>
+        <div style="font-size:12px;"><b>Action:</b> ${r.actionable_home_steps || ''}</div>
+        <div style="background:var(--green);border-radius:10px;padding:8px;margin-top:6px;font-size:11px;color:var(--green-deep);">
+          <i class="fa-brands fa-whatsapp"></i> ${r.whatsapp_friendly_text || ''}
+        </div>
+      `;
+    }
+
+    async function submitWhatsApp() {
+      const name = document.getElementById('waName').value;
+      const lang = document.getElementById('waLang').value;
+      const res = await fetch('/api/agents/parent-report/whatsapp', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({student_name: name, language: lang})
+      });
+      const data = await res.json();
+      const r = data.whatsapp_report;
+      const box = document.getElementById('waResult');
+      box.style.display = 'block';
+      box.innerHTML = `
+        <div style="font-weight:700;color:var(--green-deep);">
+          <i class="fa-brands fa-whatsapp"></i> ${lang} Message (${r.char_count} chars)
+        </div>
+        <div style="background:var(--green);border-radius:10px;padding:10px;margin:8px 0;font-size:13px;font-family:'Kalam',cursive;">
+          ${r.whatsapp_message}
+        </div>
+        <div style="font-size:11px;color:var(--ink-light);">
+          API Payload ready: <code>messaging_product: whatsapp, type: template</code>
+        </div>
+        <div style="font-size:11px;color:var(--ink-light);margin-top:4px;">
+          ${r.send_instructions}
+        </div>
+      `;
+    }
+
+    async function submitTTS() {
+      const name = document.getElementById('ttsName').value;
+      const lang = document.getElementById('ttsLang').value;
+      const res = await fetch('/api/agents/parent-report/tts', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({student_name: name, language: lang})
+      });
+      const data = await res.json();
+      const r = data.tts_report;
+      const box = document.getElementById('ttsResult');
+      box.style.display = 'block';
+      box.innerHTML = `
+        <div style="font-weight:700;color:var(--blue-deep);">
+          <i class="fa-solid fa-waveform-lines"></i> SSML — ${r.recommended_voice} (${r.ssml_lang_code})
+        </div>
+        <pre style="background:rgba(255,255,255,0.6);border-radius:10px;padding:10px;font-family:monospace;font-size:11px;margin-top:8px;max-height:120px;overflow-y:auto;">${escapeHtml(r.ssml_markup)}</pre>
+        <div style="font-size:11px;margin-top:6px;color:var(--ink-light);">
+          <b>Google TTS:</b> ${r.tts_providers.google}<br>
+          <b>AWS Polly:</b> ${r.tts_providers.aws_polly}
+        </div>
+      `;
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function loadAnalytics() {
+      const res = await fetch('/api/analytics/teacher?class_id=5B');
+      const data = await res.json();
+      const a = data.analytics;
+
+      // Render heatmap
+      const hc = document.getElementById('heatmapContainer');
+      const weeks = a.weeks;
+      const heatmap = a.misconception_heatmap;
+
+      let html = `<table class="heatmap-table"><thead><tr><th>Concept</th>`;
+      weeks.forEach(w => { html += `<th>${w}</th>`; });
+      html += '</tr></thead><tbody>';
+      heatmap.forEach(row => {
+        html += `<tr><td style="text-align:left;font-size:11px;font-weight:700;padding:6px 4px;">${row.concept}</td>`;
+        weeks.forEach(w => {
+          const val = row[w];
+          const cls = val === 0 ? 'heat-0' : val === 1 ? 'heat-1' : val === 2 ? 'heat-2' : val === 3 ? 'heat-3' : val === 4 ? 'heat-4' : 'heat-5';
+          html += `<td class="${cls}">${val}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      hc.innerHTML = html;
+
+      // Class health pills
+      const ch = a.class_health;
+      document.getElementById('classHealth').innerHTML = `
+        <div class="stat-pill" style="flex:1;">
+          <div class="stat-value" style="color:var(--green-deep);">${ch.avg_score_pct}%</div>
+          <div class="stat-label">Avg Score</div>
+        </div>
+        <div class="stat-pill" style="flex:1;">
+          <div class="stat-value" style="color:var(--pink-deep);">${ch.at_risk_students}</div>
+          <div class="stat-label">At-Risk</div>
+        </div>
+        <div class="stat-pill" style="flex:1;">
+          <div class="stat-value" style="color:var(--lavender-deep);">${ch.mastery_achieved}</div>
+          <div class="stat-label">Mastered</div>
+        </div>
+        <div class="stat-pill" style="flex:1;">
+          <div class="stat-value" style="color:var(--blue-deep);">${a.total_memories_analyzed}</div>
+          <div class="stat-label">Memories</div>
+        </div>
+      `;
+    }
+
+    async function loadCurriculum() {
+      const board = document.getElementById('boardSelect').value;
+      const res = await fetch(`/api/curriculum/coverage?class_id=5B&board=${board}`);
+      const data = await res.json();
+      const cc = data.curriculum_coverage.coverage;
+      const container = document.getElementById('curriculumContainer');
+      let html = '';
+      for (const [subject, sdata] of Object.entries(cc)) {
+        const pct = sdata.coverage_pct;
+        html += `
+          <div style="margin-bottom:14px;">
+            <div style="font-size:12px;font-weight:700;color:var(--green-deep);margin-bottom:6px;">${subject}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <div class="progress-bar" style="flex:1;">
+                <div class="progress-fill" style="width:${pct}%;background:var(--green-mid);"></div>
+              </div>
+              <span style="font-size:12px;font-weight:700;color:var(--green-deep);">${pct}%</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              ${sdata.topics.map(t => `
+                <span class="topic-pill ${t.status === 'TAUGHT' ? 'topic-taught' : 'topic-pending'}">
+                  ${t.status === 'TAUGHT' ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-regular fa-circle"></i>'}
+                  ${t.topic}
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function getActiveTargetClass() {
+      const gcf = document.getElementById('globalClassFilter')?.value;
+      if (gcf && gcf !== 'all') return gcf;
+      const vc = document.getElementById('voiceClass')?.value;
+      if (vc && vc !== 'all') return vc;
+      return "5B";
+    }
+
+    async function runEOD() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('EOD Reflection', { status: `Generating 60-Second End-of-Day digest for Class ${cls}...` });
+      try {
+        const res = await fetch(`/api/agents/reflection/eod?class_id=${cls}`);
+        const data = await res.json();
+        showAgentOutput(`EOD Reflection (Class ${cls})`, data.reflection);
+      } catch(e) { showAgentOutput('EOD Reflection Error', { error: String(e) }); }
+    }
+
+    async function runSpacedRep() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('Spaced Repetition', { status: `Calculating decay & due review items for Class ${cls}...` });
+      try {
+        const res = await fetch(`/api/memory/spaced-repetition/due?class_id=${cls}`);
+        const data = await res.json();
+        showAgentOutput(`Spaced Repetition Due Review (Class ${cls})`, { due_items: data.due_items, total_due: data.due_items?.length || 0 });
+      } catch(e) { showAgentOutput('Spaced Rep Error', { error: String(e) }); }
+    }
+
+    async function runConsolidate() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('Memory Consolidation', { status: `Clustering raw teacher notes & student flaws into high-level insights for Class ${cls}...` });
+      try {
+        const res = await fetch(`/api/memory/consolidate?class_id=${cls}`, {method:'POST'});
+        const data = await res.json();
+        showAgentOutput(`Memory Consolidation Summary (Class ${cls})`, data.consolidation);
+        loadMemoryStats();
+        // Switch blackboard collection to insights to view results
+        const memCol = document.getElementById('memCollection');
+        if (memCol) { memCol.value = 'insights'; searchMemories(); }
+      } catch(e) { showAgentOutput('Consolidation Error', { error: String(e) }); }
+    }
+
+    async function runHybridBench() {
+      showAgentOutput('Retrieval Benchmark', { status: 'Running live evaluation of Dense-Only vs Hybrid Sparse+Dense search...' });
+      try {
+        const res = await fetch('/api/memory/benchmark/retrieval');
+        const data = await res.json();
+        showAgentOutput('Hybrid vs Dense Retrieval Benchmark Results', data.benchmark);
+      } catch(e) { showAgentOutput('Benchmark Error', { error: String(e) }); }
+    }
+
+    async function runIntervention() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('Intervention Plan', { status: `Analyzing learning gaps and assembling targeted small-group intervention for Class ${cls}...` });
+      try {
+        const res = await fetch(`/api/agents/intervention/plan?class_id=${cls}`);
+        const data = await res.json();
+        showAgentOutput(`Intervention Plan (Class ${cls})`, data.intervention_plan);
+      } catch(e) { showAgentOutput('Intervention Plan Error', { error: String(e) }); }
+    }
+
+    async function runSubstitute() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('Substitute Handover Pack', { status: `Synthesizing full substitute handover with safety rules and emergency activities for Class ${cls}...` });
+      try {
+        const res = await fetch(`/api/agents/substitute/handover?class_id=${cls}`);
+        const data = await res.json();
+        showAgentOutput(`Substitute Handover Pack (Class ${cls})`, data.substitute_pack);
+      } catch(e) { showAgentOutput('Substitute Pack Error', { error: String(e) }); }
+    }
+
+    async function runQuizGame() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('Quiz & Classroom Game', { status: `Drafting gamified practice & Kahoot-style challenges for Class ${cls}...` });
+      try {
+        const res = await fetch(`/api/agents/quiz-game/generate?class_id=${cls}`);
+        const data = await res.json();
+        showAgentOutput(`Classroom Quiz Game & Bingo (Class ${cls})`, data.quiz_game);
+      } catch(e) { showAgentOutput('Quiz Game Error', { error: String(e) }); }
+    }
+
+    async function runDifferentiate() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('Differentiation Pack', { status: `Generating ESL scaffolding, dyslexia-friendly layout, and gifted extensions for Class ${cls}...` });
+      try {
+        const res = await fetch('/api/agents/differentiate', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({content: {lesson: "While loops with ultrasonic sensor triggers"}, class_id: cls})
+        });
+        const data = await res.json();
+        showAgentOutput(`Multi-Tier Differentiation Pack (Class ${cls})`, data.differentiated_pack);
+      } catch(e) { showAgentOutput('Differentiation Error', { error: String(e) }); }
+    }
+
+    async function runAssessment() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('Assessment Blueprint', { status: `Constructing Bloom-taxonomy balanced exam blueprint with grading rubric for Class ${cls}...` });
+      try {
+        const res = await fetch(`/api/agents/assessment/blueprint?class_id=${cls}`);
+        const data = await res.json();
+        showAgentOutput(`Assessment Blueprint (Class ${cls})`, data.assessment);
+      } catch(e) { showAgentOutput('Assessment Error', { error: String(e) }); }
+    }
+
+    let _lastAgentOutput = null;
+    function copyAgentOutput() {
+      if (_lastAgentOutput) {
+        navigator.clipboard.writeText(JSON.stringify(_lastAgentOutput, null, 2));
+        alert('Copied output to clipboard!');
+      }
+    }
+
+    function showAgentOutput(title, data) {
+      _lastAgentOutput = data;
+      const box = document.getElementById('agentOutputBox');
+      box.innerHTML = `
+        <div style="font-weight:700;font-size:13px;color:var(--blue-deep);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+          <span><i class="fa-solid fa-robot"></i> ${title}</span>
+          <button class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 8px;" onclick="copyAgentOutput()"><i class="fa-solid fa-copy"></i> Copy</button>
+        </div>
+        <pre style="font-size:12px;color:var(--ink);max-height:300px;overflow-y:auto;">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+      `;
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function runPrepareMonday() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('Prepare My Monday', { status: `Executing chained multi-agent loop for Class ${cls}: EOD Reflection ➔ Spaced Repetition ➔ Consolidation ➔ Plan ➔ Worksheet ➔ Critic Audit...` });
+      try {
+        const res = await fetch(`/api/agents/prepare-monday?class_id=${cls}`, { method: 'POST' });
+        const data = await res.json();
+        showAgentOutput(`Prepare My Monday — Autonomous Teaching Pack Ready (Class ${cls})`, data.monday_pack);
+        loadApprovals();
+        loadMemoryStats();
+      } catch(e) { showAgentOutput('Prepare My Monday Error', { error: String(e) }); }
+    }
+
+    async function runMemoryTimeline() {
+      const cls = getActiveTargetClass();
+      showAgentOutput('Memory Timeline', { status: `Loading chronological memory trace for Class ${cls}...` });
+      try {
+        const res = await fetch(`/api/memory/timeline?class_id=${cls}&limit=20`);
+        const data = await res.json();
+        const tl = data.memory_timeline;
+        let html = `<div style="font-weight:700;font-size:13px;color:var(--blue-deep);margin-bottom:8px;"><i class="fa-solid fa-timeline"></i> Memory Timeline (Class ${cls})</div>`;
+        html += `<div style="display:flex;gap:6px;margin-bottom:10px;font-size:11px;flex-wrap:wrap;">`;
+        for (const [k, v] of Object.entries(tl.legend || {})) {
+          html += `<span style="padding:2px 8px;border-radius:6px;background:rgba(0,0,0,0.05);font-size:10px;">● <b>${k}:</b> ${v}</span>`;
+        }
+        html += `</div><div style="display:flex;flex-direction:column;gap:6px;">`;
+        (tl.timeline || []).forEach(e => {
+          html += `<div style="padding:8px 12px;border-left:4px solid ${e.color};background:rgba(255,255,255,0.7);border-radius:0 8px 8px 0;font-size:11px;">
+            <div style="display:flex;justify-content:space-between;color:var(--ink-light);margin-bottom:2px;">
+              <b><i class="fa-solid fa-${e.icon}"></i> ${e.collection}</b>
+              <span>Score: ${e.score} | Weight: ${e.weight}</span>
+            </div>
+            <div>${e.text_preview}...</div>
+          </div>`;
+        });
+        html += `</div>`;
+        document.getElementById('agentOutputBox').innerHTML = html;
+      } catch(e) { showAgentOutput('Timeline Error', { error: String(e) }); }
+    }
+
+    async function runPIIDiff() {
+      const rawSample = document.getElementById('voiceInput').value.trim() || "Aarav Sharma scored poorly. Call father at +91 98765 43210 or email aarav.sharma@parent.edu.";
+      const res = await fetch('/api/privacy/pii-diff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_text: rawSample, class_id: "5B" })
+      });
+      const data = await res.json();
+      const diff = data.pii_diff;
+      let html = `<div style="font-weight:700;font-size:13px;color:var(--blue-deep);margin-bottom:8px;"><i class="fa-solid fa-code-compare"></i> Live PII Scrub Diff View (0% Leakage Guarantee)</div>`;
+      html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div style="background:#fee2e2;padding:10px;border-radius:10px;font-size:11px;">
+          <b style="color:#b91c1c;">Raw Ambient Voice:</b><br>${diff.raw_text}
+        </div>
+        <div style="background:#dcfce7;padding:10px;border-radius:10px;font-size:11px;">
+          <b style="color:#15803d;">Scrubbed (Zero-PII Outbound):</b><br>${diff.sanitized_text}
+        </div>
+      </div>`;
+      html += `<div style="font-size:11px;color:var(--ink-light);">Changes detected: <b>${diff.changes_count}</b> | Outbound leak rate: <b style="color:var(--green-deep);">${diff.pii_leak_rate}%</b> | Certified: <b style="color:var(--green-deep);">${diff.privacy_certified}</b></div>`;
+      document.getElementById('agentOutputBox').innerHTML = html;
+    }
+
+    let memoryEnabled = true;
+    async function toggleMemoryMode() {
+      memoryEnabled = !memoryEnabled;
+      const res = await fetch('/api/settings/memory-toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memory_enabled: memoryEnabled })
+      });
+      const data = await res.json();
+      const btn = document.getElementById('toggleMemBtn');
+      if (memoryEnabled) {
+        btn.innerHTML = '<i class="fa-solid fa-toggle-on text-emerald-500"></i> Memory: ON';
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-toggle-off text-rose-500"></i> Memory: OFF (Ablation)';
+      }
+      alert(data.message);
+    }
+
+    async function purgeStudent() {
+      const name = prompt("Enter student name or PID for Right-to-be-Forgotten purge:", "Aarav Sharma");
+      if (!name) return;
+      const res = await fetch('/api/privacy/forget', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({student_name_or_pid: name})
+      });
+      const data = await res.json();
+      alert(`Purge Complete!\nPID: ${data.student_pid}\nVectors Purged: ${data.vector_memories_purged}`);
+      loadMemoryStats();
+    }
+
+    async function runEvaluations() {
+      const panel = document.getElementById('evalsPanel');
+      panel.style.display = 'block';
+      document.getElementById('evalCards').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--ink-light);font-size:12px;">Running evaluations...</div>`;
+      const res = await fetch('/api/evals/run');
+      const data = await res.json();
+      const m = data.metrics;
+
+      document.getElementById('evalCards').innerHTML = `
+        <div class="stat-pill" style="flex-direction:row;justify-content:space-between;align-items:center;grid-column:1/-1;gap:16px;">
+          <div style="text-align:center;">
+            <div class="stat-value" style="color:var(--lavender-deep);">κ = ${m.grader_agreement.cohens_kappa}</div>
+            <div class="stat-label">Cohen's Kappa</div>
+          </div>
+          <div style="text-align:center;">
+            <div class="stat-value" style="color:var(--blue-deep);">${(m.retrieval_benchmark.recall_at_k * 100).toFixed(1)}%</div>
+            <div class="stat-label">Recall@3</div>
+          </div>
+          <div style="text-align:center;">
+            <div class="stat-value" style="color:var(--green-deep);">${m.privacy_benchmark.privacy_compliance_score}%</div>
+            <div class="stat-label">Privacy Score</div>
+          </div>
+          <div style="text-align:center;">
+            <div class="stat-value" style="color:var(--pink-deep);">${m.critic_trap_audit.catch_rate_pct}%</div>
+            <div class="stat-label">Critic Catch Rate</div>
+          </div>
+          <div style="text-align:center;">
+            <div class="stat-value" style="color:var(--gold-deep);">${m.telemetry.dag_success_rate_pct}%</div>
+            <div class="stat-label">DAG Success</div>
+          </div>
+          <div style="text-align:center;">
+            <div class="stat-value" style="color:var(--green-deep);">${m.ablation_study.delta_improvement.misconception_accuracy_gain}</div>
+            <div class="stat-label">Memory Gain</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Web Speech API
+    let recognition, isRecording = false;
+    function toggleMic() {
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        return alert("Web Speech API not supported. Type instead.");
+      }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!recognition) {
+        recognition = new SR();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = (e) => {
+          let interim = "";
+          let final = "";
+          for (let i = 0; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+              final += e.results[i][0].transcript + " ";
+            } else {
+              interim += e.results[i][0].transcript;
+            }
+          }
+          const existing = document.getElementById('voiceInput').dataset.preMicText || "";
+          document.getElementById('voiceInput').value = (existing + (final + interim)).trim();
+        };
+        recognition.onend = () => {
+          isRecording = false;
+          document.getElementById('micLabel').innerText = "Browser Mic";
+          document.getElementById('micBtn').style.background = '';
+          const current = document.getElementById('voiceInput').value;
+          document.getElementById('voiceInput').dataset.preMicText = current ? current + " " : "";
+        };
+        recognition.onerror = (e) => {
+          console.warn("Speech recognition error:", e);
+          isRecording = false;
+          document.getElementById('micLabel').innerText = "Browser Mic";
+          document.getElementById('micBtn').style.background = '';
+        };
+      }
+      if (!isRecording) {
+        document.getElementById('voiceInput').dataset.preMicText = document.getElementById('voiceInput').value ? document.getElementById('voiceInput').value + " " : "";
+        recognition.start(); isRecording = true;
+        document.getElementById('micLabel').innerText = "Listening... (Speaking)";
+        document.getElementById('micBtn').style.background = '#fce4ec';
+      } else {
+        recognition.stop();
+      }
+    }
+
+    let cachedStudents = [];
+    let availableClasses = [];
+
+    async function populateClassFilters() {
+      try {
+        const res = await fetch('/api/students');
+        const data = await res.json();
+        cachedStudents = data.students || [];
+        availableClasses = data.available_classes || [];
+
+        // Populate voiceClass select
+        const vc = document.getElementById('voiceClass');
+        if (vc && availableClasses.length) {
+          vc.innerHTML = availableClasses.map(c => 
+            `<option value="${c}" ${c === '5B' ? 'selected' : ''}>Class ${c}</option>`
+          ).join('');
+        }
+
+        // Populate globalClassFilter select
+        const gcf = document.getElementById('globalClassFilter');
+        if (gcf && availableClasses.length) {
+          gcf.innerHTML = `<option value="all">All Classes (200 Students)</option>` + 
+            availableClasses.map(c => 
+              `<option value="${c}" ${c === '5B' ? 'selected' : ''}>Class ${c}</option>`
+            ).join('');
+        }
+
+        updateStudentDropdowns('5B');
+      } catch (err) {
+        console.warn("Could not load classes:", err);
+      }
+    }
+
+    function syncClassFilter(cls) {
+      const gcf = document.getElementById('globalClassFilter');
+      if (gcf) gcf.value = cls;
+      onClassFilterChange(cls);
+    }
+
+    function onClassFilterChange(cls) {
+      updateStudentDropdowns(cls);
+      // Sync class text fields
+      const effectiveCls = (cls === 'all' || !cls) ? '5B' : cls;
+      const classInputs = ['gradeClass', 'photoClass'];
+      classInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = effectiveCls;
+      });
+      const vc = document.getElementById('voiceClass');
+      if (vc && cls !== 'all') vc.value = cls;
+      searchMemories();
+    }
+
+    function updateStudentDropdowns(classFilter) {
+      let filtered = cachedStudents;
+      if (classFilter && classFilter !== 'all') {
+        filtered = cachedStudents.filter(s => s.class_id === classFilter);
+      }
+
+      // Update badge
+      const badge = document.getElementById('studentCountBadge');
+      if (badge) {
+        badge.innerText = `${filtered.length} students`;
+      }
+
+      const dropdownIds = ['gradeName', 'photoName', 'parentName', 'waName', 'ttsName'];
+      dropdownIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const currentVal = el.value;
+        
+        el.innerHTML = filtered.map(s => 
+          `<option value="${s.real_name}">${s.real_name} (${s.class_id})</option>`
+        ).join('') + `<option value="__custom__">+ Enter Custom Student...</option>`;
+
+        if (filtered.some(s => s.real_name === currentVal)) {
+          el.value = currentVal;
+        } else if (filtered.length > 0) {
+          el.value = filtered[0].real_name;
+        }
+
+        el.onchange = function() {
+          if (this.value === '__custom__') {
+            const customName = prompt("Enter custom student name:");
+            if (customName && customName.trim()) {
+              const opt = document.createElement('option');
+              opt.value = customName.trim();
+              opt.text = `${customName.trim()} (Custom)`;
+              opt.selected = true;
+              this.insertBefore(opt, this.lastElementChild);
+            } else {
+              this.selectedIndex = 0;
+            }
+          }
+        };
+      });
+    }
+  </script>
+
+  <!-- API Keys / BYOK Modal -->
+  <div id="keyModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99999;backdrop-filter:blur(3px);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:18px;max-width:540px;width:92%;padding:24px;box-shadow:0 16px 48px rgba(0,0,0,0.22);position:relative;border:2px solid var(--lavender-mid);animation:fadeUp 0.25s ease;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:var(--gold-mid);display:flex;align-items:center;justify-content:center;color:var(--gold-deep);font-size:18px;">
+            <i class="fa-solid fa-key"></i>
+          </div>
+          <div>
+            <h3 style="margin:0;font-size:16px;color:var(--ink);font-weight:800;">Bring Your Own API Keys</h3>
+            <p style="margin:0;font-size:11px;color:var(--ink-light);">Saved locally in your browser. Server master keys remain private.</p>
+          </div>
+        </div>
+        <button onclick="closeKeyModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-light);padding:0 6px;">&times;</button>
+      </div>
+
+      <div style="background:var(--lavender);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:12px;color:var(--lavender-deep);line-height:1.4;">
+        <i class="fa-solid fa-shield-halved"></i> <strong>Hosting Protection:</strong> When hosting Chalksy publicly, visitors can test with their own keys. The host's private quota will not be used or exposed.
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--ink);">
+          OpenRouter API Key <span style="font-weight:normal;color:var(--green-deep);font-size:11px;">(Free models available)</span>
+        </label>
+        <input type="password" id="userOpenRouterKey" placeholder="sk-or-v1-..." style="width:100%;padding:8px 12px;border:1.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;font-family:monospace;box-sizing:border-box;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:8px;">
+          <span style="font-size:11px;color:var(--ink-light);">Get free key: <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--blue-deep);font-weight:700;">openrouter.ai/keys</a></span>
+          <select id="userOpenRouterModel" style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #ccc;">
+            <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free)</option>
+            <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (Free)</option>
+            <option value="qwen/qwen-2.5-72b-instruct:free">Qwen 2.5 72B (Free)</option>
+            <option value="mistralai/mistral-7b-instruct:free">Mistral 7B (Free)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--ink);">
+          Lyzr Agent Studio Key <span style="font-weight:normal;color:var(--ink-light);font-size:11px;">(Optional)</span>
+        </label>
+        <input type="password" id="userLyzrKey" placeholder="sk-default-..." style="width:100%;padding:8px 12px;border:1.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;font-family:monospace;box-sizing:border-box;">
+      </div>
+
+      <div id="keyNotice" style="font-size:12px;margin-bottom:14px;font-weight:700;min-height:16px;"></div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-sm btn-outline" onclick="clearUserKeys()">
+          <i class="fa-solid fa-rotate-left"></i> Clear / Use Host Demo
+        </button>
+        <button class="btn btn-sm btn-green" onclick="saveUserKeys()">
+          <i class="fa-solid fa-check"></i> Save & Use My Keys
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global fetch interceptor: forwards user's custom keys in X-User-Keys header
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      options = options || {};
+      const custom = localStorage.getItem('chalksy_user_keys');
+      if (custom && typeof url === 'string' && url.startsWith('/api/')) {
+        options.headers = options.headers || {};
+        if (options.headers instanceof Headers) {
+          options.headers.set('X-User-Keys', encodeURIComponent(custom));
+        } else {
+          options.headers['X-User-Keys'] = encodeURIComponent(custom);
+        }
+      }
+      return originalFetch.call(this, url, options);
+    };
+
+    function openKeyModal() {
+      const modal = document.getElementById('keyModal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+      const stored = localStorage.getItem('chalksy_user_keys');
+      const notice = document.getElementById('keyNotice');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          document.getElementById('userOpenRouterKey').value = parsed.openrouter_key || '';
+          document.getElementById('userLyzrKey').value = parsed.lyzr_key || '';
+          if (parsed.model) document.getElementById('userOpenRouterModel').value = parsed.model;
+          notice.innerHTML = '<span style="color:var(--green-deep);"><i class="fa-solid fa-circle-check"></i> Custom API keys active from your browser localStorage.</span>';
+        } catch (e) {}
+      } else {
+        document.getElementById('userOpenRouterKey').value = '';
+        document.getElementById('userLyzrKey').value = '';
+        notice.innerHTML = '<span style="color:var(--ink-light);"><i class="fa-solid fa-server"></i> Currently using Server Default / Demo Mode.</span>';
+      }
+    }
+
+    function closeKeyModal() {
+      const modal = document.getElementById('keyModal');
+      if (modal) modal.style.display = 'none';
+      updateKeyBadge();
+    }
+
+    function saveUserKeys() {
+      const orKey = document.getElementById('userOpenRouterKey').value.trim();
+      const lyKey = document.getElementById('userLyzrKey').value.trim();
+      const model = document.getElementById('userOpenRouterModel').value;
+      const notice = document.getElementById('keyNotice');
+
+      if (!orKey && !lyKey) {
+        clearUserKeys();
+        return;
+      }
+
+      const keysObj = {
+        openrouter_key: orKey,
+        lyzr_key: lyKey,
+        model: model
+      };
+      localStorage.setItem('chalksy_user_keys', JSON.stringify(keysObj));
+      notice.innerHTML = '<span style="color:var(--green-deep);"><i class="fa-solid fa-circle-check"></i> Keys saved successfully! Requests will now use your keys.</span>';
+      updateKeyBadge();
+      setTimeout(closeKeyModal, 900);
+    }
+
+    function clearUserKeys() {
+      localStorage.removeItem('chalksy_user_keys');
+      document.getElementById('userOpenRouterKey').value = '';
+      document.getElementById('userLyzrKey').value = '';
+      const notice = document.getElementById('keyNotice');
+      notice.innerHTML = '<span style="color:var(--ink-light);"><i class="fa-solid fa-rotate-left"></i> Cleared! Reverted to server default demo mode.</span>';
+      updateKeyBadge();
+      setTimeout(closeKeyModal, 900);
+    }
+
+    function updateKeyBadge() {
+      const badge = document.getElementById('keyStatusBadge');
+      if (!badge) return;
+      const stored = localStorage.getItem('chalksy_user_keys');
+      if (stored) {
+        badge.style.background = '#27ae60'; // Green: user keys active
+        badge.title = 'Custom user keys active';
+      } else {
+        badge.style.background = '#3498db'; // Blue: server defaults
+        badge.title = 'Server default keys active';
+      }
+    }
+
+    window.addEventListener('load', () => {
+      loadMemoryStats();
+      loadApprovals();
+      populateClassFilters();
+      searchMemories();
+      updateKeyBadge();
+    });
+  </script>
+</body>
+</html>
