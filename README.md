@@ -1,131 +1,221 @@
-# Chalksy: Autonomous AI Classroom Builder
-### Stop Prompting, Solo Agents Hackathon (Lyzr × Qdrant × Omi)
+<div align="center">
 
-> **Build Track**: **Collaborative Multi-Agent Workflows** *(also cross-qualifies for Meeting & Lecture Intelligence & Privacy-First Knowledge Systems)*  
-> **Mandatory Loop**: **Omi Voice Capture ➔ Qdrant Vector Memory ➔ Lyzr Orchestrator Reasoning ➔ Memory Write-Back**  
-> **Author**: Solo Participant  
+# Chalksy
+### Autonomous AI Classroom Agent
+
+**Voice to Lesson Plans to Worksheets to Parent Reports**
+with full Human-in-the-Loop Teacher Approval
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com)
+[![Lyzr](https://img.shields.io/badge/Powered%20by-Lyzr-purple.svg)](https://lyzr.ai)
+[![Qdrant](https://img.shields.io/badge/Memory-Qdrant%20Cloud-red.svg)](https://qdrant.tech)
+
+> **Hackathon Track**: Collaborative Multi-Agent Workflows
+> **Stack**: Lyzr - Qdrant - OpenRouter - FastAPI - Python
+
+</div>
 
 ---
 
-## 🌟 Architecture & Mandatory Closed Loop
+## What is Chalksy?
+
+Chalksy is an autonomous multi-agent AI system that acts as a co-teacher. A teacher speaks naturally about their classroom. Chalksy listens, understands, and automatically generates lesson plans, differentiated worksheets, and multilingual parent reports. Everything goes through a human-in-the-loop approval queue before reaching students or parents.
+
+---
+
+## Architecture
+
+Full interactive diagram: [gitdiagram.com/Obedientononline/Chalksy](https://gitdiagram.com/obedientononline/chalksy)
 
 ```
-[Omi Wearable Necklace / Ambient Mic] ──► [FastAPI Gateway: /omi/conversation, /omi/realtime]
-                                                      │
-                                                      ▼
-                                       [Salted PII Sanitization Engine]
-                                     (Devanagari, Kannada, regex, obfuscation)
-                                                      │
-                                                      ▼
-    ┌─────────────────────────────── [Lyzr Orchestrator Agent] ◄══════════════════════┐
-    │                                (Builds typed execution DAG)                      │
-    ▼                                                 │                                │
-[Planner Agent] ◄─── Root-Gap Prerequisite KG         │                                │
-[Worksheet Agent] ◄─ Spaced Repetition Scheduler      │                                │
-[Critic Agent] ◄──── Contradiction & Syllabi Traps   │                                │
-[Grader Agent] ───────────────────────────────────────┼───► Writes back to Qdrant      │
-[Parent-Report Agent] (EN / HI / KN / SSML TTS)       │     student_events collection  │
-[Diff / Assessment / Intervention / Substitute / Quiz]│                                │
-    │                                                 │                                │
-    ▼                                                 ▼                                │
-[Human-in-the-Loop Teacher Approval Queue] ◄──────────┘                                │
-    │                                                                                  │
-    ▼                                                                                  │
-[Export Engine: PDF / DOCX / WhatsApp API]                                             │
-    │                                                                                  │
-    ▼                                                                                  │
-[Memory Consolidation Job: Raw Notes + Events ➔ Summarized Insights] ══════════════════╝
+TEACHER (User)
+  Speaks / Types input
+        |
+        v
+CAPTURE AND PRIVACY LAYER
+  FastAPI Gateway  (/api/omi/webhook)
+        |
+        |---> PII Sanitizer (anonymizer.py)
+        |     Scrubs names, phones, emails
+        |
+        v
+AGENT WORKFLOW  (crew.py)
+        |
+        v
+  Planner / Orchestrator (crew.py)
+        |
+        |-- Grading and Assessment      -- Worksheets and Quizzes
+        |-- LLM Provider Engine         -- Parent Reports
+        |-- Classroom Support Agents    -- Curriculum Alignment
+        |-- Lesson Planning
+        |
+        v
+  Runtime Config (config.py)
+        |
+        |
+        |----> TEACHER APPROVAL QUEUE      LLM PROVIDERS        CLASSROOM MEMORY
+               Artifact Exporter           OpenRouter            Memory Ingestion
+               (exporter.py)               Lyzr Studio           (qdrant_store.py)
+               Teacher Dashboard           Gemini Free
+               (dag_state.db)                                     Qdrant Cloud Store
+                                                                  (qdrant_store.py)
 ```
 
 ---
 
-## 🚀 Comprehensive Capabilities (Phase 1 to Phase 7)
+## Features
 
-### 🧠 Phase 1: Autonomous Memory Loop
-- **Memory Consolidation Job (`POST /api/memory/consolidate`)**: Clusters raw `teacher_notes` and `student_events` into high-level summaries written to the `insights` collection, down-weighting raw items without deleting provenance.
-- **Contradiction Detection**: Flags teacher spoken claims that conflict with recent student error trends in vector memory, displaying side-by-side evidence in the approval queue.
-- **Misconception Knowledge Graph (`GET /api/memory/knowledge-graph/trace`)**: Traces failed student concepts to root foundational gaps and automates remediation planning.
-- **Spaced-Repetition Scheduler (`GET /api/memory/spaced-repetition/due`)**: Calculates memory decay ($R = e^{-\Delta t / S}$) and auto-seeds due review items into generated worksheets.
-- **Hybrid vs. Dense Benchmark (`GET /api/memory/benchmark/retrieval`)**: Dense + sparse hybrid search with Reciprocal Rank Fusion.
+### Voice to Action Pipeline
+- Teacher speaks naturally and transcript is auto-processed
+- PII scrubbing (names, phones, emails) before any LLM call
+- Hinglish and multilingual support
 
-### 👩‍🏫 Phase 2: Learning from Teachers & Measurable Evals
-- **Teacher-Correction Learning (`POST /api/corrections/record`)**: Stores human teacher overrides as few-shot memory items in `corrections`, improving future grading and worksheet generations.
-- **Rubric-Explained Confidence Grading**: Emits per-criterion scores with confidence metrics; auto-routes low-confidence evaluations ($< 0.70$) to human review.
-- **Ablation Study (`GET /api/evals/ablation`)**: Quantifies accuracy, syllabus alignment, and personalization with vector memory ON vs. OFF.
-- **Adversarial & Privacy Red-Team Suite**: Validates 100% catch rate against off-syllabus calculus, age hazards, and Devanagari/Kannada/obfuscated PII attacks.
+### Multi-Agent DAG
 
-### 🎙️ Phase 3: Voice, Language & Ambient Workflow
-- **Code-Switching Detection**: Classifies Hinglish, Kanglish, and English markers directly from teacher speech.
-- **Voice Approval Commands Router**: Recognizes spoken commands (*"approve the worksheet"*, *"sab approve kardo"*, *"make it easier"*) and updates tasks autonomously.
-- **PTM Conference Intelligence (`POST /api/agents/ptm-conference`)**: Extracts parent concerns, teacher promises, and action items into a checklist.
-- **End-of-Day 60-Second Reflection (`GET /api/agents/reflection/eod`)**: Generates rapid summaries of topics taught, confusion points, and action items for tomorrow.
+| Agent | Role |
+|-------|------|
+| Planner | Classifies intent, identifies learning gaps, routes tasks |
+| Worksheet Agent | Generates 3-tier differentiated questions (Basic / Medium / Challenge) |
+| Critic / Guardrail | Validates curriculum alignment, flags off-syllabus content |
+| Grader Agent | Rubric-based grading with per-criterion confidence scores |
+| Parent Report Agent | Multilingual reports (EN / HI / KN) + WhatsApp + TTS-ready |
 
-### 🤝 Phase 4: Classroom Support Agents
-- **Differentiation Agent (`POST /api/agents/differentiate`)**: ESL scaffolding, dyslexia-friendly spacing, and gifted extensions.
-- **Assessment Designer (`GET /api/agents/assessment/blueprint`)**: Bloom-taxonomy blueprint tables with answers.
-- **Intervention Agent (`GET /api/agents/intervention/plan`)**: Pinpoints at-risk cohorts and generates small-group remediation.
-- **Substitute Handover Pack (`GET /api/agents/substitute/handover`)**: Generates handover plans with objectives and fallback games.
-- **Quiz/Game Agent (`GET /api/agents/quiz-game/generate`)**: Generates printable Bingo cards and Kahoot questions.
-- **Peer-Review Consensus**: Dual-agent proposal synthesis before final guardrail submission.
+### Human-in-the-Loop
+- All AI outputs go to Teacher Approval Queue first
+- Approve / Reject / Restore with full history tabs
+- Export approved content as PDF or DOCX
 
-### 📸 Phase 5: Grading Inputs & Teacher Analytics
-- **Handwritten Photo OCR Grading (`POST /api/agents/grade/photo`)**: Base64 photo ingestion and grading against lesson rubrics.
-- **Curriculum Coverage Tracker (`GET /api/curriculum/coverage`)**: Syllabus coverage tracker for CBSE, ICSE, and Karnataka State boards.
-- **WhatsApp Business API Formatter (`POST /api/agents/parent-report/whatsapp`)**: Generates 160-char template-ready WhatsApp payload.
-- **Voice TTS Parent Report (`POST /api/agents/parent-report/tts`)**: SSML markup ready for Google Cloud TTS, AWS Polly, or Azure Speech.
-- **Teacher Analytics Dashboard Heatmap (`GET /api/analytics/teacher`)**: Misconception frequency heatmap (Concept × Week).
+### Qdrant Cloud Memory (6 Collections)
 
-### 🔒 Phase 6: Privacy Hardening
-- **Consent Registry (`POST /api/privacy/consent`)**: Granular, per-student, per-collection opt-in/opt-out with expiration support.
-- **Hash-Chained Audit Log (`GET /api/privacy/audit-log/verify`)**: Tamper-evident HMAC SHA-256 chain verifying log integrity.
-- **Laplace Differential Privacy (`POST /api/privacy/dp-aggregate`)**: Adds differential privacy noise to aggregate scores to prevent re-identification.
-- **Extended Right-to-be-Forgotten (`POST /api/privacy/rtbf`)**: Cascade purge across registry, consent records, submission fingerprints, and Qdrant vectors.
-- **Plagiarism Advisory (`POST /api/privacy/plagiarism-check`)**: Jaccard similarity detection across student submissions.
+| Collection | What is stored |
+|------------|----------------|
+| teacher_notes | Raw classroom observations |
+| curriculum | Syllabus alignment knowledge |
+| student_events | Grading outcomes and misconceptions |
+| artifacts | Generated plans and worksheets |
+| insights | Consolidated memory summaries |
+| corrections | Teacher overrides for few-shot learning |
 
-### 🎨 Phase 7: Demo Polish & Warm Notebook GUI
-- **"Prepare My Monday" (`POST /api/agents/prepare-monday`)**: Chained one-click command running EOD Reflection ➔ Spaced Rep ➔ Consolidation ➔ Plan ➔ Worksheet ➔ Critic.
-- **Memory Timeline View (`GET /api/memory/timeline`)**: Color-coded timeline of memories across all Qdrant collections.
-- **Live PII Scrub Diff View (`POST /api/privacy/pii-diff`)**: Side-by-side token diff showing original vs. scrubbed input.
-- **Memory On/Off Live Toggle (`POST /api/settings/memory-toggle`)**: Toggle Qdrant vector memory on/off in real-time to demonstrate ablation.
-- **Warm Notebook GUI**: Pastel school report card style (lavender, gold, soft blue, pink) with bold underlined headers and Kalam font accents.
+### BYOK - Bring Your Own API Keys
+- Visitors can enter their own OpenRouter / Lyzr keys via the API Keys modal
+- Keys stored in browser localStorage only
+- Server .env keys are never exposed to visitors
+
+### Privacy First
+- Salted pseudonymization with Right-to-be-Forgotten (RTBF)
+- Laplace differential privacy on aggregate scores
+- Hash-chained tamper-evident audit log
 
 ---
 
-## 🛠️ Quickstart
+## Quick Start
 
-### 1. Configure Environment
+### 1. Clone and Configure
+
 ```bash
+git clone https://github.com/Obedientononline/Chalksy.git
+cd Chalksy
 cp .env.example .env
 ```
-Fill in your API credentials (or run in offline fallback mode with built-in cognitive engine):
+
+Edit `.env` with your keys (all free tiers available):
+
 ```ini
-LYZR_API_KEY=your_lyzr_api_key
-LYZR_AGENT_ID=your_lyzr_agent_id
-OPENAI_API_KEY=your_openai_api_key
-QDRANT_URL=  # Leave blank for local embedded Qdrant
+# Free from https://openrouter.ai/keys
+OPENROUTER_API_KEY=your_key_here
+OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free
+
+# Free from https://cloud.qdrant.io
+QDRANT_URL=https://xxxx.qdrant.io:6333
+QDRANT_API_KEY=your_key_here
+
+# Free from https://studio.lyzr.ai
+LYZR_API_KEY=your_key_here
+LYZR_AGENT_ID=your_agent_id
 ```
 
-### 2. Seed Synthetic Classroom & Curriculum
+### 2. Install and Seed
+
 ```bash
+pip install -r requirements.txt
 python seed_data.py
 ```
 
-### 3. Run the Application
+### 3. Run
+
 ```bash
-# Windows / PowerShell:
+# Windows
 run.bat
-# Or manually:
+
+# Mac / Linux
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
-Open **`http://localhost:8000`** in your browser.
 
-### 4. Run the Full Test Suite
-```bash
-python -m pytest tests/test_pipeline.py -v
-```
-*(30 tests covering all 7 phases pass with 100% success).*
+Open http://localhost:8000
 
 ---
 
-## 📜 License
-MIT License
+## Demo Script (5 Minutes)
+
+| Step | Action | What to show |
+|------|--------|-------------|
+| 1 | Click Sample 1 preset then Ingest Voice | PII scrub diff, live DAG |
+| 2 | Open Teacher Approval Queue | Pending worksheet with 3-tier questions |
+| 3 | Click Approve then Export PDF | Generated student handout |
+| 4 | Submit a student answer with a mistake | Misconception detection + Qdrant write-back |
+| 5 | Click Prepare My Monday | Full chained 6-agent autonomous run |
+| 6 | Click API Keys in header | BYOK modal - visitor enters own key |
+
+---
+
+## Project Structure
+
+```
+Chalksy/
+├── app/
+│   ├── main.py              # FastAPI routes and endpoints
+│   ├── agents/
+│   │   ├── crew.py          # Multi-agent orchestration DAG
+│   │   └── engine.py        # LLM provider (OpenRouter/Lyzr/Gemini)
+│   ├── core/
+│   │   ├── config.py        # Pydantic settings
+│   │   ├── dag_state.py     # SQLite task state machine
+│   │   └── exporter.py      # PDF / DOCX export
+│   ├── memory/
+│   │   └── qdrant_store.py  # Qdrant Cloud vector memory
+│   ├── privacy/
+│   │   └── anonymizer.py    # PII scrubbing and RTBF
+│   └── templates/
+│       └── dashboard.html   # Full-stack UI (single HTML file)
+├── data/
+│   └── demo_students.csv    # 200 synthetic students, 40 classes
+├── tests/
+│   └── test_pipeline.py     # Full pipeline test suite
+├── .env.example             # Environment template
+├── netlify.toml             # Netlify Functions deploy
+├── render.yaml              # One-click Render deploy
+├── Dockerfile               # Docker container
+└── seed_data.py             # DB and Qdrant seeder
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | FastAPI + Python 3.11 |
+| Multi-Agent | Lyzr Studio |
+| Vector Memory | Qdrant Cloud |
+| Free LLMs | OpenRouter (Llama 3.3 70B, Gemini 2.0 Flash) |
+| Frontend | Vanilla JS + HTML (single file, no build step) |
+| Export | ReportLab PDF + python-docx |
+| Privacy | Custom PII anonymizer + Laplace DP |
+
+---
+
+## License
+
+MIT 2026 Chalksy
