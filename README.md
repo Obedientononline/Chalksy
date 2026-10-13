@@ -157,19 +157,6 @@ Open http://localhost:8000
 
 ---
 
-## Demo Script (5 Minutes)
-
-| Step | Action | What to show |
-|------|--------|-------------|
-| 1 | Click Sample 1 preset then Ingest Voice | PII scrub diff, live DAG |
-| 2 | Open Teacher Approval Queue | Pending worksheet with 3-tier questions |
-| 3 | Click Approve then Export PDF | Generated student handout |
-| 4 | Submit a student answer with a mistake | Misconception detection + Qdrant write-back |
-| 5 | Click Prepare My Monday | Full chained 6-agent autonomous run |
-| 6 | Click API Keys in header | BYOK modal - visitor enters own key |
-
----
-
 ## Project Structure
 
 ```
