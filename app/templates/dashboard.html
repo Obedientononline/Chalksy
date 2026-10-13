@@ -1118,7 +1118,13 @@
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({image_base64: b64, student_name: name, class_id: cls})
           });
-          const data = await res.json();
+          let data;
+          const text = await res.text();
+          try {
+            data = JSON.parse(text);
+          } catch (jsonErr) {
+            throw new Error(text.length > 120 ? text.substring(0, 120) + "..." : text);
+          }
           const r = data.grade_report || {};
           box.style.display = 'block';
           box.innerHTML = `

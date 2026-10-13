@@ -334,7 +334,7 @@ class MultiAgentCrew:
 
         return {"has_contradiction": False}
 
-    def grade_submission(self, student_name_or_pid: str, student_answer: str, class_id: str = "5B", use_memory: bool = True) -> Dict[str, Any]:
+    def grade_submission(self, student_name_or_pid: str, student_answer: str, class_id: str = "5B", use_memory: bool = True, custom_keys: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """
         Grader Agent:
         - Retrieves past teacher corrections from the 'corrections' collection as few-shot examples.
@@ -364,7 +364,7 @@ class MultiAgentCrew:
             "and formative feedback. Return strictly valid JSON."
         )
         user_prompt = f"Student PID: {pid}\nClass: {class_id}\nSubmission: {student_answer}\nTeacher Few-Shot Corrections: {json.dumps(corrections)}"
-        res = AgentEngine.call_llm(sys_prompt, user_prompt)
+        res = AgentEngine.call_llm(sys_prompt, user_prompt, custom_keys=custom_keys)
         
         try:
             grade_result = json.loads(res)
