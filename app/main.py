@@ -517,26 +517,42 @@ async def quiz_game_endpoint(topic: str = "Loops & Sensors", class_id: str = "5B
     game = crew_orchestrator.generate_quiz_game(topic=topic, class_id=class_id)
     return {"status": "SUCCESS", "quiz_game": game}
 
-# Exporter
-@app.post("/api/export")
-async def export_artifact(payload: ExportPayload):
+# Exporter (Supports both POST with JSON body and GET with query params)
+@app.api_route("/api/export", methods=["GET", "POST"])
+async def export_artifact(request: Request, task_id: Optional[str] = None, format: Optional[str] = None):
+    # Extract params whether sent via JSON POST body or GET query params
+    if request.method == "POST":
+        try:
+            body = await request.json()
+            task_id = body.get("task_id", task_id)
+            format = body.get("format", format)
+        except Exception:
+            pass
+
+    task_id = task_id or request.query_params.get("task_id")
+    format = (format or request.query_params.get("format") or "pdf").lower()
+
+    if not task_id:
+        raise HTTPException(status_code=400, detail="Missing task_id.")
+
     tasks = task_db.get_all_tasks(limit=100)
-    target_task = next((t for t in tasks if t["task_id"] == payload.task_id), None)
+    target_task = next((t for t in tasks if t["task_id"] == task_id), None)
     if not target_task:
-        raise HTTPException(status_code=404, detail="Task not found.")
+        raise HTTPException(status_code=404, detail="Task not found in queue.")
 
     output_data = target_task.get("output", {})
     title = target_task.get("title", "Classroom Resource")
-    filename = f"{payload.task_id}.{payload.format}"
+    filename = f"{task_id}.{format}"
+    os.makedirs("exports", exist_ok=True)
     filepath = os.path.join("exports", filename)
 
-    if payload.format == "pdf":
+    if format == "pdf":
         export_manager.export_to_pdf(title, output_data, filepath)
         return FileResponse(filepath, media_type="application/pdf", filename=filename)
-    elif payload.format == "docx":
+    elif format == "docx":
         export_manager.export_to_docx(title, output_data, filepath)
         return FileResponse(filepath, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename=filename)
-    elif payload.format == "whatsapp":
+    elif format == "whatsapp":
         msg = export_manager.format_whatsapp_message("Parent", "Student", output_data)
         return {"whatsapp_text": msg}
     else:

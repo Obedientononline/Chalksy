@@ -144,52 +144,76 @@ class AgentEngine:
         low_user = user_prompt.lower()
 
         if "orchestrator" in low_sys:
+            # Dynamically extract class and topic keywords
+            import re
+            m_class = re.search(r'\b(class\s+)?([1-9]|10)[A-Da-d]\b', user_prompt, re.IGNORECASE)
+            detected_class = m_class.group(0).upper().replace("CLASS ", "").strip() if m_class else "5B"
+            
+            # Simple keyword topic detector
+            topic = "Loops & Sensor Integration"
+            if "fraction" in low_user or "math" in low_user:
+                topic = "Fractions & Number Operations"
+            elif "photosynthesis" in low_user or "plant" in low_user:
+                topic = "Plant Biology & Photosynthesis"
+            elif "variable" in low_user:
+                topic = "Variables & Data Types"
+            elif "sensor" in low_user or "ultrasonic" in low_user:
+                topic = "Robotics & Ultrasonic Sensors"
+            elif "loop" in low_user:
+                topic = "Iteration & While Loop Conditions"
+
             return json.dumps({
                 "intent": "LESSON_PLANNING_AND_REMEDIATION",
                 "extracted_entities": {
-                    "class_id": "5B",
-                    "topic": "Loops & Sensor Integration",
+                    "class_id": detected_class,
+                    "topic": topic,
                     "target_day": "Friday",
-                    "key_struggle": "Loop termination & sensor polling"
+                    "key_struggle": f"Core mastery and boundary conditions in {topic}"
                 },
                 "tasks_to_trigger": ["PLANNER", "WORKSHEET", "PARENT_REPORT"]
             }, indent=2)
 
         elif "planner" in low_sys:
+            import re
+            m_class = re.search(r'\b(class\s+)?([1-9]|10)[A-Da-d]\b', user_prompt, re.IGNORECASE)
+            target_cls = m_class.group(0).upper().replace("CLASS ", "").strip() if m_class else "5B"
             return json.dumps({
-                "lesson_title": "Interactive Robotics & Loop Mastery with Ultrasonic Sensors",
-                "class_id": "5B",
-                "grade_level": "Grade 5 (CBSE/ICSE Aligned)",
-                "prerequisites_checked": "Basic variables & conditional statements (Mastered last week)",
-                "skipped_topics": ["Simple While Loops (Mastered, skipping to prevent student boredom)"],
-                "focus_remediation": "Loop condition updates & infinite loop avoidance based on class notes",
+                "lesson_title": f"Adaptive Session: Core Concepts & Practice (Class {target_cls})",
+                "class_id": target_cls,
+                "grade_level": f"Class {target_cls} (CBSE/ICSE Aligned)",
+                "prerequisites_checked": "Foundational logic and previous unit basics",
+                "skipped_topics": ["Elementary syntax (Mastered, skipping to prevent student boredom)"],
+                "focus_remediation": "Targeted misconception repair and hands-on reinforcement",
                 "duration_minutes": 45,
                 "dag_plan": [
-                    {"time": "00-10m", "activity": "Kinesthetic hook: Human While-Loop game with ultrasonic distance rule"},
-                    {"time": "10-25m", "activity": "Live sensor demo: Polling sonar sensor until distance < 15cm"},
-                    {"time": "25-35m", "activity": "Tiered pair programming challenge on breakout boards"},
-                    {"time": "35-45m", "activity": "Formative exit ticket (Worksheet tiering feedback)"}
+                    {"time": "00-10m", "activity": "Hook & Guided Recall: Review previous lesson gaps"},
+                    {"time": "10-25m", "activity": "Interactive Demonstration & Concept Modeling"},
+                    {"time": "25-35m", "activity": "Tiered Practice: Guided paired problem solving"},
+                    {"time": "35-45m", "activity": "Formative Exit Ticket for real-time check"}
                 ],
                 "bloom_taxonomy_level": "Application & Analysis"
             }, indent=2)
 
         elif "worksheet" in low_sys:
+            import re
+            m_class = re.search(r'\b(class\s+)?([1-9]|10)[A-Da-d]\b', user_prompt, re.IGNORECASE)
+            target_cls = m_class.group(0).upper().replace("CLASS ", "").strip() if m_class else "5B"
             return json.dumps({
-                "title": "Remediation & Mastery Challenge: Loops & Sensor Triggers",
+                "title": f"3-Tier Practice & Rubric — Class {target_cls}",
                 "tier_1_foundational": [
-                    {"q": "Q1. Identify what condition stops this loop: while (distance > 20): read_sensor()", "answer": "When distance becomes <= 20cm", "bloom": "Understanding"},
-                    {"q": "Q2. True/False: An infinite loop occurs if the loop variable never updates.", "answer": "True", "bloom": "Remembering"}
+                    {"q": "Q1. Identify the fundamental rule and state why the condition is evaluated.", "answer": "Evaluates to true or false before execution.", "bloom": "Understanding"},
+                    {"q": "Q2. True/False: An unchecked state condition can cause an indefinite execution cycle.", "answer": "True", "bloom": "Remembering"}
                 ],
                 "tier_2_proficient": [
-                    {"q": "Q3. Fix the bug in this code where the robot never stops moving.", "answer": "Add `distance = sensor.read()` inside the body of the loop.", "bloom": "Application"}
+                    {"q": "Q3. Correct the logic flaw in the provided snippet so it terminates appropriately.", "answer": "Update the control variable within the iteration block.", "bloom": "Application"}
                 ],
                 "tier_3_advanced": [
-                    {"q": "Q4. Write a nested condition for an obstacle avoidance rover with dual IR sensors.", "answer": "Check front sensor, then branch left/right based on clearance.", "bloom": "Synthesis"}
+                    {"q": "Q4. Construct a dual-condition algorithm with error-handling fallback.", "answer": "Include secondary boundary check with safe default exit.", "bloom": "Synthesis"}
                 ],
                 "rubric": {
-                    "understanding_syntax": "25% weight - Correct loop constructs without syntax faults",
-                    "logic_exit_condition": "50% weight - Robust condition ensuring safe loop exit",
-                    "hardware_integration": "25% weight - Accurate sensor polling interval"
+                    "understanding_syntax": "25% weight - Accurate expression structure",
+                    "logic_exit_condition": "50% weight - Robust boundary verification",
+                    "hardware_integration": "25% weight - Application accuracy"
                 }
             }, indent=2)
 
