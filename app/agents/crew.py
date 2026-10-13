@@ -58,6 +58,7 @@ class MultiAgentCrew:
 
         # Step 3: Lyzr Orchestrator intent classification and DAG scheduling
         intent_info = self._orchestrator_classify(sanitized_transcript, class_id, lang_info=lang_id)
+        topic_name = intent_info.get('extracted_entities', {}).get('topic') or "Classroom Practice"
         
         # Step 4: Execute DAG tasks
         tasks_created = []
@@ -68,12 +69,12 @@ class MultiAgentCrew:
             task_id=planner_task_id,
             dag_id=dag_id,
             agent_name="Planner Agent",
-            title=f"Plan lesson for {intent_info.get('extracted_entities', {}).get('topic', 'Upcoming Session')}",
+            title=f"Plan {topic_name} (Class {class_id})",
             parent_id=None,
             inputs={"sanitized_text": sanitized_transcript, "class_id": class_id, "entities": intent_info},
             memory_refs=[{"collection": "teacher_notes", "id": note_id}]
         )
-        plan_output = self._execute_planner(planner_task_id, sanitized_transcript, class_id)
+        plan_output = self._execute_planner(planner_task_id, sanitized_transcript, class_id, custom_keys=custom_keys)
         tasks_created.append(planner_task_id)
 
         # Task 2: Tiered Worksheet Generation
@@ -82,12 +83,12 @@ class MultiAgentCrew:
             task_id=worksheet_task_id,
             dag_id=dag_id,
             agent_name="Worksheet Agent",
-            title="Generate 3-Tier Worksheet & Rubric",
+            title=f"3-Tier {topic_name} Worksheet & Rubric (Class {class_id})",
             parent_id=planner_task_id,
             inputs={"plan": plan_output, "class_id": class_id},
             memory_refs=[{"collection": "teacher_notes", "id": note_id}]
         )
-        worksheet_output = self._execute_worksheet(worksheet_task_id, plan_output, class_id)
+        worksheet_output = self._execute_worksheet(worksheet_task_id, plan_output, class_id, custom_keys=custom_keys)
         tasks_created.append(worksheet_task_id)
 
         # Task 3: Critic Guardrail Inspection
@@ -96,11 +97,11 @@ class MultiAgentCrew:
             task_id=critic_task_id,
             dag_id=dag_id,
             agent_name="Critic Guardrail Agent",
-            title="Privacy, Curriculum & Age Guardrail Audit",
+            title=f"Audit & Certify {topic_name} for Class {class_id}",
             parent_id=worksheet_task_id,
             inputs={"worksheet": worksheet_output, "plan": plan_output}
         )
-        critic_output = self._execute_critic(critic_task_id, worksheet_output, spoken_transcript=sanitized_transcript, class_id=class_id)
+        critic_output = self._execute_critic(critic_task_id, worksheet_output, spoken_transcript=sanitized_transcript, class_id=class_id, custom_keys=custom_keys)
         tasks_created.append(critic_task_id)
 
         # If Critic passes or flags contradiction, queue for approval with corresponding status
@@ -190,7 +191,7 @@ class MultiAgentCrew:
         except Exception:
             return {"intent": "GENERAL_LESSON_PLANNING", "extracted_entities": {"topic": "Science & Tech", "class_id": class_id}}
 
-    def _execute_planner(self, task_id: str, prompt: str, class_id: str) -> Dict[str, Any]:
+    def _execute_planner(self, task_id: str, prompt: str, class_id: str, custom_keys: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         task_db.update_task_status(task_id, "RUNNING")
         
         # 1. Vector memory retrieval for past class history and syllabus
@@ -221,13 +222,13 @@ class MultiAgentCrew:
         kg_trace = memory_manager.trace_root_gap(detected_concept)
 
         sys_prompt = "You are the Planner Agent. Use retrieved curriculum benchmarks, past classroom notes, and root-gap prerequisite analysis to generate an adaptive lesson plan that skips mastered topics."
-        user_prompt = f"Prompt: {prompt}\nRetrieved Teacher History: {json.dumps(past_notes)}\nRetrieved Curriculum: {json.dumps(curriculum)}\nConsolidated Insights: {json.dumps(insights)}\nKnowledge Graph Prerequisite Trace: {json.dumps(kg_trace)}"
-        res = AgentEngine.call_llm(sys_prompt, user_prompt)
+        user_prompt = f"Prompt: {prompt}\nTarget Class: {class_id}\nRetrieved Teacher History: {json.dumps(past_notes)}\nRetrieved Curriculum: {json.dumps(curriculum)}\nConsolidated Insights: {json.dumps(insights)}\nKnowledge Graph Prerequisite Trace: {json.dumps(kg_trace)}"
+        res = AgentEngine.call_llm(sys_prompt, user_prompt, custom_keys=custom_keys)
         
         try:
             plan = json.loads(res)
         except Exception:
-            plan = {"lesson_title": "Adaptive Lesson Plan", "content": res}
+            plan = {"lesson_title": f"Adaptive Lesson Plan (Class {class_id})", "content": res}
 
         # Embed knowledge graph remediation into plan output
         plan["prerequisite_root_gap"] = kg_trace
@@ -243,7 +244,7 @@ class MultiAgentCrew:
         )
         return plan
 
-    def _execute_worksheet(self, task_id: str, plan: Dict[str, Any], class_id: str) -> Dict[str, Any]:
+    def _execute_worksheet(self, task_id: str, plan: Dict[str, Any], class_id: str, custom_keys: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         task_db.update_task_status(task_id, "RUNNING")
         
         # 1. Retrieve known misconceptions
@@ -259,13 +260,13 @@ class MultiAgentCrew:
         due_review_items = memory_manager.get_due_spaced_repetition_items(class_id=class_id)
 
         sys_prompt = "You are the Worksheet Agent. Create a 3-tier difficulty worksheet (Foundational, Proficient, Advanced) with answers and grading rubric. Seed spaced-repetition review questions for due misconceptions."
-        user_prompt = f"Plan: {json.dumps(plan)}\nMisconceptions to remediate: {json.dumps(misconceptions)}\nSpaced Repetition Due Items: {json.dumps(due_review_items)}"
-        res = AgentEngine.call_llm(sys_prompt, user_prompt)
+        user_prompt = f"Plan: {json.dumps(plan)}\nClass: {class_id}\nMisconceptions to remediate: {json.dumps(misconceptions)}\nSpaced Repetition Due Items: {json.dumps(due_review_items)}"
+        res = AgentEngine.call_llm(sys_prompt, user_prompt, custom_keys=custom_keys)
         
         try:
             worksheet = json.loads(res)
         except Exception:
-            worksheet = {"title": "Adaptive Remediation Worksheet", "details": res}
+            worksheet = {"title": f"Adaptive Remediation Worksheet (Class {class_id})", "details": res}
 
         # Automatically attach spaced repetition review challenge if items are due
         if due_review_items:
@@ -282,15 +283,15 @@ class MultiAgentCrew:
         )
         return worksheet
 
-    def _execute_critic(self, task_id: str, content: Dict[str, Any], spoken_transcript: str = "", class_id: str = "5B") -> Dict[str, Any]:
+    def _execute_critic(self, task_id: str, content: Dict[str, Any], spoken_transcript: str = "", class_id: str = "5B", custom_keys: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         task_db.update_task_status(task_id, "RUNNING")
         
         # Feature 2: Contradiction Detection between teacher notes and student_events
         contradiction_flag = self._detect_contradiction(spoken_transcript, class_id)
 
         sys_prompt = "You are the Critic / Guardrail Agent. Audit the content for curriculum alignment, age appropriateness, hallucination, and PII leaks. Return strict JSON."
-        user_prompt = f"Content to audit: {json.dumps(content)}\nContradiction status: {json.dumps(contradiction_flag)}"
-        res = AgentEngine.call_llm(sys_prompt, user_prompt)
+        user_prompt = f"Content to audit: {json.dumps(content)}\nTarget Class: {class_id}\nContradiction status: {json.dumps(contradiction_flag)}"
+        res = AgentEngine.call_llm(sys_prompt, user_prompt, custom_keys=custom_keys)
         try:
             audit = json.loads(res)
         except Exception:

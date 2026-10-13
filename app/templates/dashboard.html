@@ -596,7 +596,12 @@
 
     <!-- ROW 5: EOD Reflection + PTM + Phase 4 Agents -->
     <div class="card card-blue mb-18">
-      <div class="section-label"><i class="fa-solid fa-brain"></i> Autonomous Agents — Quick Actions</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="section-label" style="margin-bottom:0;"><i class="fa-solid fa-brain"></i> Autonomous Agents — Quick Actions</div>
+        <span id="quickActionClassBadge" style="font-size:11px;font-weight:700;background:var(--blue);color:var(--blue-deep);padding:3px 10px;border-radius:8px;">
+          Active Target: Class 5B
+        </span>
+      </div>
       <div id="agentsBtnRow" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
         <button class="btn btn-sm btn-gold" onclick="runPrepareMonday()">
           <i class="fa-solid fa-calendar-star"></i> Prepare My Monday
@@ -1753,6 +1758,10 @@
       });
       const vc = document.getElementById('voiceClass');
       if (vc && cls !== 'all') vc.value = cls;
+      
+      const badge = document.getElementById('quickActionClassBadge');
+      if (badge) badge.innerText = `Active Target: Class ${effectiveCls}`;
+      
       searchMemories();
     }
 
