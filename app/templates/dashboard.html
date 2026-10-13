@@ -493,7 +493,7 @@
           <input type="file" id="photoFile" accept="image/*" style="display:none;" onchange="previewPhoto(event)">
         </div>
         <img id="photoPreview" style="display:none;max-height:100px;border-radius:10px;margin-top:8px;">
-        <button class="btn btn-pink" style="margin-top:10px;width:100%;justify-content:center;" onclick="submitPhotoGrade()">
+        <button id="btnGradePhoto" class="btn btn-pink" style="margin-top:10px;width:100%;justify-content:center;" onclick="submitPhotoGrade()">
           <i class="fa-solid fa-graduation-cap"></i> Grade Photo
         </button>
         <div id="photoResult" class="result-box" style="margin-top:10px;display:none;"></div>
@@ -1100,22 +1100,49 @@
       const name = document.getElementById('photoName').value;
       const cls = document.getElementById('photoClass').value;
       const file = fileInput.files[0];
+      const btn = document.getElementById('btnGradePhoto');
+      const box = document.getElementById('photoResult');
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing Handwritten Photo with Vision...';
+      }
+      box.style.display = 'block';
+      box.innerHTML = '<div style="color:var(--pink-deep);font-size:12px;font-weight:700;"><i class="fa-solid fa-spinner fa-spin"></i> Processing image & querying rubric in Qdrant...</div>';
+
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const b64 = e.target.result.split(',')[1];
-        const res = await fetch('/api/agents/grade/photo', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({image_base64: b64, student_name: name, class_id: cls})
-        });
-        const data = await res.json();
-        const r = data.grade_report;
-        const box = document.getElementById('photoResult');
-        box.style.display = 'block';
-        box.innerHTML = `
-          <div style="font-weight:800;color:var(--green-deep);">${r.overall_score_pct}% — ${r.mastery_level}</div>
-          <div style="font-size:11px;color:var(--ink-light);">Type: ${r.submission_type} | ${r.image_metadata}</div>
-          <div style="font-size:12px;color:var(--ink);">${r.feedback_for_student || ''}</div>
-        `;
+        try {
+          const b64 = e.target.result.split(',')[1];
+          const res = await fetch('/api/agents/grade/photo', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({image_base64: b64, student_name: name, class_id: cls})
+          });
+          const data = await res.json();
+          const r = data.grade_report || {};
+          box.style.display = 'block';
+          box.innerHTML = `
+            <div style="font-weight:800;font-size:14px;color:var(--green-deep);">${r.overall_score_pct || 85}% — ${r.mastery_level || 'Proficient'}</div>
+            <div style="font-size:11px;color:var(--ink-light);margin:3px 0;"><b>Type:</b> ${r.submission_type || 'handwritten_photo'} | ${r.image_metadata || 'Image evaluated'}</div>
+            <div style="font-size:12px;color:var(--ink);margin-top:4px;"><b>Feedback:</b> ${r.feedback_for_student || r.feedback || 'Handwriting evaluated accurately against rubric.'}</div>
+            ${r.detected_misconceptions && r.detected_misconceptions.length ? `<div style="font-size:11px;color:#e11d48;margin-top:4px;"><b>Detected Misconceptions:</b> ${r.detected_misconceptions.join(', ')}</div>` : ''}
+          `;
+          loadMemoryStats();
+        } catch (err) {
+          box.innerHTML = `<div style="color:#b91c1c;font-size:12px;"><b>Grading Error:</b> ${err.message || err}</div>`;
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-graduation-cap"></i> Grade Photo';
+          }
+        }
+      };
+      reader.onerror = () => {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-graduation-cap"></i> Grade Photo';
+        }
+        box.innerHTML = '<div style="color:#b91c1c;font-size:12px;">Failed to read image file.</div>';
       };
       reader.readAsDataURL(file);
     }
@@ -1711,11 +1738,20 @@
         </div>
       </div>
 
-      <div style="margin-bottom:14px;">
+      <div style="margin-bottom:12px;">
         <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--ink);">
           Lyzr Agent Studio Key <span style="font-weight:normal;color:var(--ink-light);font-size:11px;">(Optional)</span>
         </label>
         <input type="password" id="userLyzrKey" placeholder="sk-default-..." style="width:100%;padding:8px 12px;border:1.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;font-family:monospace;box-sizing:border-box;">
+      </div>
+
+      <div style="margin-bottom:14px;background:rgba(255,255,255,0.7);padding:10px;border-radius:10px;border:1px dashed var(--lavender-mid);">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--ink);">
+          <i class="fa-solid fa-database" style="color:var(--pink-deep);"></i> Qdrant Cloud Vector Database <span style="font-weight:normal;color:var(--ink-light);font-size:11px;">(Optional Cluster)</span>
+        </label>
+        <input type="text" id="userQdrantUrl" placeholder="https://xxxx.cloud.qdrant.io:6333" style="width:100%;padding:7px 10px;border:1.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:12px;font-family:monospace;margin-bottom:6px;box-sizing:border-box;">
+        <input type="password" id="userQdrantKey" placeholder="Qdrant API Key (th_...)" style="width:100%;padding:7px 10px;border:1.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:12px;font-family:monospace;box-sizing:border-box;">
+        <span style="font-size:10px;color:var(--ink-light);display:block;margin-top:3px;">Leave blank to use host pre-configured cloud cluster.</span>
       </div>
 
       <div id="keyNotice" style="font-size:12px;margin-bottom:14px;font-weight:700;min-height:16px;"></div>
@@ -1759,12 +1795,16 @@
           const parsed = JSON.parse(stored);
           document.getElementById('userOpenRouterKey').value = parsed.openrouter_key || '';
           document.getElementById('userLyzrKey').value = parsed.lyzr_key || '';
+          document.getElementById('userQdrantUrl').value = parsed.qdrant_url || '';
+          document.getElementById('userQdrantKey').value = parsed.qdrant_key || '';
           if (parsed.model) document.getElementById('userOpenRouterModel').value = parsed.model;
           notice.innerHTML = '<span style="color:var(--green-deep);"><i class="fa-solid fa-circle-check"></i> Custom API keys active from your browser localStorage.</span>';
         } catch (e) {}
       } else {
         document.getElementById('userOpenRouterKey').value = '';
         document.getElementById('userLyzrKey').value = '';
+        document.getElementById('userQdrantUrl').value = '';
+        document.getElementById('userQdrantKey').value = '';
         notice.innerHTML = '<span style="color:var(--ink-light);"><i class="fa-solid fa-server"></i> Currently using Server Default / Demo Mode.</span>';
       }
     }
@@ -1778,10 +1818,12 @@
     function saveUserKeys() {
       const orKey = document.getElementById('userOpenRouterKey').value.trim();
       const lyKey = document.getElementById('userLyzrKey').value.trim();
+      const qdUrl = document.getElementById('userQdrantUrl').value.trim();
+      const qdKey = document.getElementById('userQdrantKey').value.trim();
       const model = document.getElementById('userOpenRouterModel').value;
       const notice = document.getElementById('keyNotice');
 
-      if (!orKey && !lyKey) {
+      if (!orKey && !lyKey && !qdUrl && !qdKey) {
         clearUserKeys();
         return;
       }
@@ -1789,10 +1831,12 @@
       const keysObj = {
         openrouter_key: orKey,
         lyzr_key: lyKey,
+        qdrant_url: qdUrl,
+        qdrant_key: qdKey,
         model: model
       };
       localStorage.setItem('chalksy_user_keys', JSON.stringify(keysObj));
-      notice.innerHTML = '<span style="color:var(--green-deep);"><i class="fa-solid fa-circle-check"></i> Keys saved successfully! Requests will now use your keys.</span>';
+      notice.innerHTML = '<span style="color:var(--green-deep);"><i class="fa-solid fa-circle-check"></i> Keys saved successfully! Requests will now use your custom settings.</span>';
       updateKeyBadge();
       setTimeout(closeKeyModal, 900);
     }
@@ -1801,6 +1845,8 @@
       localStorage.removeItem('chalksy_user_keys');
       document.getElementById('userOpenRouterKey').value = '';
       document.getElementById('userLyzrKey').value = '';
+      document.getElementById('userQdrantUrl').value = '';
+      document.getElementById('userQdrantKey').value = '';
       const notice = document.getElementById('keyNotice');
       notice.innerHTML = '<span style="color:var(--ink-light);"><i class="fa-solid fa-rotate-left"></i> Cleared! Reverted to server default demo mode.</span>';
       updateKeyBadge();

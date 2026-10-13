@@ -556,24 +556,28 @@ class PhotoGradePayload(BaseModel):
     class_id: Optional[str] = "5B"
 
 @app.post("/api/agents/grade/photo")
-async def grade_photo_submission(payload: PhotoGradePayload):
+async def grade_photo_submission(payload: PhotoGradePayload, request: Request):
     """Accepts base64 image of handwritten student work and grades via cognitive engine."""
+    custom_keys = extract_custom_keys(request)
     result = crew_orchestrator.grade_from_photo(
         image_base64=payload.image_base64,
         student_name_or_pid=payload.student_name,
-        class_id=payload.class_id
+        class_id=payload.class_id,
+        custom_keys=custom_keys
     )
     return {"status": "SUCCESS", "grade_report": result}
 
 @app.post("/api/agents/grade/photo/upload")
-async def grade_photo_upload(student_name: str = "Student", class_id: str = "5B", file: UploadFile = File(...)):
+async def grade_photo_upload(request: Request, student_name: str = "Student", class_id: str = "5B", file: UploadFile = File(...)):
     """Accepts multipart photo upload of handwritten work."""
+    custom_keys = extract_custom_keys(request)
     img_bytes = await file.read()
     img_b64 = base64.b64encode(img_bytes).decode("utf-8")
     result = crew_orchestrator.grade_from_photo(
         image_base64=img_b64,
         student_name_or_pid=student_name,
-        class_id=class_id
+        class_id=class_id,
+        custom_keys=custom_keys
     )
     return {"status": "SUCCESS", "filename": file.filename, "grade_report": result}
 
